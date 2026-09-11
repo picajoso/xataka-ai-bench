@@ -29,6 +29,15 @@ importers:
 
   apps/cli: {}
 
+  packages/adapters:
+    dependencies:
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      zod:
+        specifier: ^4.0.0
+        version: 4.6.1
+
   packages/config:
     dependencies:
       '@aibench/contracts':

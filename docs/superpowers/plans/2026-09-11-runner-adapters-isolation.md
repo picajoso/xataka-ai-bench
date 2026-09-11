@@ -37,23 +37,23 @@
 - Produces: `AgentAdapter.cancel(reason): Promise<void>`.
 - Produces: `FakeAdapter` with scripted events, delays, exit states and file changes.
 
-- [ ] **Step 1: Write the adapter contract tests**
+- [x] **Step 1: Write the adapter contract tests**
 
   Test success, structured messages, tool events, stderr diagnostics, cancellation, non-zero exit, malformed event and delayed timeout scenarios.
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
   Run `pnpm --filter @aibench/adapters test`; expect missing exports.
 
-- [ ] **Step 3: Implement normalized adapter events**
+- [x] **Step 3: Implement normalized adapter events**
 
   Define `session.started`, `message.delta`, `tool.started`, `tool.finished`, `usage`, `diagnostic`, `session.finished` and `adapter.error`, preserving raw vendor events separately.
 
-- [ ] **Step 4: Implement the deterministic fake**
+- [x] **Step 4: Implement the deterministic fake**
 
   Allow tests to create files only inside the supplied workspace and emit reproducible timestamps through an injected clock.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
   Run package tests and `pnpm typecheck`; commit as `feat: define agent adapter contract`.
 

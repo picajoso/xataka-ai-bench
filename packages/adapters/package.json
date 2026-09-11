@@ -1,0 +1,14 @@
+{
+  "name": "@aibench/adapters",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --root ../.. packages/adapters/test",
+    "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  },
+  "dependencies": {
+    "@aibench/contracts": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}
