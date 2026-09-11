@@ -25,7 +25,7 @@ The automated preflight resolved the physical path, created and removed a write 
 - `platform/` is the only Git repository and contains public-source candidates only.
 - `state/` and `legacy/` are siblings of the repository and cannot be staged accidentally from it.
 - The preflight requires at least 10 GiB free by default.
-- The legacy copy procedure is additive: it refuses an existing destination, compares sorted SHA-256 inventories, and never removes the original tree.
+- The legacy copy procedure is additive: it refuses an existing destination, compares the source before and after copying, verifies sorted SHA-256 file inventories, BOM metadata (including entry types, links, empty directories and modes) and extended attributes, and never removes the original tree.
 
 ## Security decision before real runs
 

@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, readdir, readlink, realpath } from "node:fs/promises";
-import { extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { basename, extname, isAbsolute, relative, resolve, sep } from "node:path";
 
 const textExtensions = new Set([
-  ".css", ".csv", ".html", ".js", ".json", ".jsx", ".md", ".mjs",
-  ".sh", ".svg", ".ts", ".tsx", ".txt", ".xml", ".yaml", ".yml",
+  ".c", ".conf", ".cpp", ".css", ".csv", ".go", ".h", ".hpp", ".html",
+  ".ini", ".java", ".js", ".json", ".jsx", ".md", ".mjs", ".php",
+  ".properties", ".py", ".rb", ".rs", ".sh", ".sql", ".svelte", ".svg",
+  ".toml", ".ts", ".tsx", ".txt", ".vue", ".xml", ".yaml", ".yml",
+]);
+const textBasenames = new Set([
+  ".gitignore", ".node-version", ".npmrc", ".nvmrc", "Dockerfile", "LICENSE", "Makefile",
 ]);
 
 function digest(content: string | Buffer): string {
@@ -12,11 +17,17 @@ function digest(content: string | Buffer): string {
 }
 
 function mediaClass(path: string): "text" | "binary" {
-  return textExtensions.has(extname(path).toLowerCase()) ? "text" : "binary";
+  return textExtensions.has(extname(path).toLowerCase()) || textBasenames.has(basename(path))
+    ? "text"
+    : "binary";
 }
 
 function normalizedText(content: Buffer): string {
-  return content.toString("utf8").replace(/\r\n?/g, "\n");
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(content).replace(/\r\n?/g, "\n");
+  } catch {
+    throw new Error("Declared text file contains invalid UTF-8");
+  }
 }
 
 function compareUtf8(left: string, right: string): number {

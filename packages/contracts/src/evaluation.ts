@@ -47,7 +47,14 @@ export const EvaluationReportSchema = z.object({
     minimum: z.number(),
     maximum: z.number(),
     method: z.string().min(1),
-  }).strict().optional(),
+  }).strict().superRefine((score, context) => {
+    if (score.minimum >= score.maximum) {
+      context.addIssue({ code: "custom", message: "score minimum must be lower than maximum", path: ["minimum"] });
+    }
+    if (score.value < score.minimum || score.value > score.maximum) {
+      context.addIssue({ code: "custom", message: "score value must be within its declared range", path: ["value"] });
+    }
+  }).optional(),
 }).strict();
 
 export type EvaluationReport = z.infer<typeof EvaluationReportSchema>;

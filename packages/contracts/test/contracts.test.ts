@@ -86,10 +86,58 @@ describe("core contracts", () => {
 
   test("requires a parent for repair and forbids one for first-shot", () => {
     const run = jsonFixture("run.valid.json") as Record<string, unknown>;
-    expect(() => parseRunManifest({ ...run, attempt: { kind: "repair", parentRunId: null } })).toThrow();
+    expect(() => parseRunManifest({ ...run, attempt: { kind: "repair", parent: null } })).toThrow();
     expect(() => parseRunManifest({
       ...run,
-      attempt: { kind: "first-shot", parentRunId: "20260911T140000Z-parent-system-a1b2c3" },
+      attempt: {
+        kind: "first-shot",
+        parent: {
+          runId: "20260911T140000Z-parent-system-a1b2c3",
+          attemptKind: "first-shot",
+          manifestHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        },
+      },
+    })).toThrow();
+    expect(() => parseRunManifest({
+      ...run,
+      attempt: {
+        kind: "repair",
+        parent: {
+          runId: "20260911T140000Z-parent-system-a1b2c3",
+          attemptKind: "repair",
+          manifestHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        },
+      },
+    })).toThrow();
+    expect(parseRunManifest({
+      ...run,
+      attempt: {
+        kind: "repair",
+        parent: {
+          runId: "20260911T140000Z-parent-system-a1b2c3",
+          attemptKind: "first-shot",
+          manifestHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        },
+      },
+    }).attempt.kind).toBe("repair");
+  });
+
+  test("enforces status-dependent failure, timing and publication invariants", () => {
+    const run = jsonFixture("run.valid.json") as Record<string, unknown>;
+    expect(() => parseRunManifest({ ...run, status: "FAILED", failure: null })).toThrow();
+    expect(() => parseRunManifest({ ...run, status: "RUNNING", finishedAt: "2026-09-11T14:49:10Z" })).toThrow();
+    expect(() => parseRunManifest({ ...run, status: "PUBLISHED", publicationStatus: "private" })).toThrow();
+  });
+
+  test("rejects invalid numeric score ranges", () => {
+    const evaluation = jsonFixture("evaluation.valid.json") as Record<string, unknown>;
+    expect(() => parseEvaluationReport({
+      ...evaluation,
+      score: { value: 11, minimum: 0, maximum: 10, method: "objective checks" },
+    })).toThrow();
+    expect(() => parseEvaluationReport({
+      ...evaluation,
+      score: { value: 5, minimum: 10, maximum: 0, method: "objective checks" },
     })).toThrow();
   });
 

@@ -18,7 +18,7 @@
   },
   "attempt": {
     "kind": "first-shot",
-    "parentRunId": null
+    "parent": null
   },
   "executionClass": "official-container",
   "status": "READY_FOR_REVIEW",

@@ -1,12 +1,29 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 const script = resolve(repositoryRoot, "scripts/verify-storage.sh");
+const archiveScript = resolve(repositoryRoot, "scripts/archive-legacy.sh");
 const temporaryDirectories: string[] = [];
+
+type FixtureEnvironment = Record<string, string> & {
+  AIBENCH_DF_OUTPUT_FILE: string;
+  AIBENCH_DISKUTIL_OUTPUT_FILE: string;
+  AIBENCH_MIN_AVAILABLE_BYTES: string;
+  AIBENCH_REQUIRED_PREFIX: string;
+  BENCH_ROOT: string;
+};
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -19,7 +36,7 @@ function fixture(overrides: {
   diskInfo?: string;
   mountPoint?: string;
   rootExists?: boolean;
-} = {}) {
+} = {}): FixtureEnvironment {
   const base = realpathSync(mkdtempSync(join(tmpdir(), "aibench-storage-")));
   temporaryDirectories.push(base);
   const benchRoot = join(base, "xataka-ai-bench");
@@ -55,9 +72,9 @@ function fixture(overrides: {
   };
 }
 
-function verify(environment: Record<string, string>) {
+function verify(environment: Record<string, string>, fixtureMode = true) {
   try {
-    const stdout = execFileSync("sh", [script], {
+    const stdout = execFileSync("sh", fixtureMode ? [script, "--test-fixtures"] : [script], {
       cwd: repositoryRoot,
       encoding: "utf8",
       env: { ...process.env, ...environment },
@@ -106,5 +123,38 @@ describe("verify-storage.sh", () => {
     const result = verify(fixture({ availableKilobytes: 1 }));
     expect(result.status).not.toBe(0);
     expect(result.output).toContain("insufficient space");
+  });
+
+  test("does not honor fixture overrides in production mode", () => {
+    const result = verify(fixture(), false);
+    expect(result.status).not.toBe(0);
+    expect(result.output).toContain("required prefix");
+  });
+
+  test("archives files, symlinks, empty directories and metadata without deleting the source", () => {
+    const environment = fixture();
+    const source = join(environment.AIBENCH_REQUIRED_PREFIX, "legacy-source");
+    mkdirSync(join(source, "empty"), { recursive: true });
+    writeFileSync(join(source, "data.txt"), "legacy\n");
+    symlinkSync("data.txt", join(source, "data-link"));
+    environment.AIBENCH_LEGACY_SOURCE = source;
+
+    execFileSync("sh", [archiveScript, "--test-fixtures"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      env: { ...process.env, ...environment },
+    });
+
+    const report = JSON.parse(readFileSync(
+      join(environment.BENCH_ROOT, "legacy/inventory.json"),
+      "utf8",
+    )) as Record<string, unknown>;
+    expect(report).toMatchObject({
+      verified: true,
+      sourceStable: true,
+      metadataVerified: true,
+      extendedAttributesVerified: true,
+      sourceRemoved: false,
+    });
   });
 });

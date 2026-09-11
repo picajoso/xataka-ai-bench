@@ -18,8 +18,9 @@ function assertContained(root: string, candidate: string): void {
 }
 
 export async function loadBenchmark(manifestPath: string): Promise<LoadedBenchmark> {
-  const absoluteManifestPath = await realpath(resolve(manifestPath));
-  const directory = dirname(absoluteManifestPath);
+  const requestedManifestPath = resolve(manifestPath);
+  const directory = await realpath(dirname(requestedManifestPath));
+  const absoluteManifestPath = await realpath(requestedManifestPath);
   assertContained(directory, absoluteManifestPath);
   const definition = parseBenchmark(parse(await readFile(absoluteManifestPath, "utf8")));
 

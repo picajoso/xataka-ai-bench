@@ -2,8 +2,18 @@
 set -eu
 
 bench_root=${BENCH_ROOT:-/Volumes/MacOS_VMs/xataka-ai-bench}
-required_prefix=${AIBENCH_REQUIRED_PREFIX:-/Volumes/MacOS_VMs/}
 minimum_bytes=${AIBENCH_MIN_AVAILABLE_BYTES:-10737418240}
+required_prefix=/Volumes/MacOS_VMs/
+fixture_mode=false
+
+if [ "$#" -gt 0 ]; then
+  [ "$#" -eq 1 ] && [ "$1" = "--test-fixtures" ] || {
+    printf 'storage_error=usage: verify-storage.sh [--test-fixtures]\n' >&2
+    exit 2
+  }
+  fixture_mode=true
+  required_prefix=${AIBENCH_REQUIRED_PREFIX:?AIBENCH_REQUIRED_PREFIX is required in fixture mode}
+fi
 
 fail() {
   printf 'storage_error=%s\n' "$1" >&2
@@ -22,7 +32,8 @@ case "$physical_root/" in
   *) fail "resolved benchmark root is outside required prefix: $physical_root" ;;
 esac
 
-if [ -n "${AIBENCH_DF_OUTPUT_FILE:-}" ]; then
+if [ "$fixture_mode" = true ]; then
+  : "${AIBENCH_DF_OUTPUT_FILE:?AIBENCH_DF_OUTPUT_FILE is required in fixture mode}"
   df_output=$(cat "$AIBENCH_DF_OUTPUT_FILE")
 else
   df_output=$(df -Pk "$physical_root") || fail "cannot inspect mounted volume"
@@ -38,7 +49,8 @@ esac
 available_bytes=$((available_kilobytes * 1024))
 [ "$available_bytes" -ge "$minimum_bytes" ] || fail "insufficient space: $available_bytes bytes available"
 
-if [ -n "${AIBENCH_DISKUTIL_OUTPUT_FILE:-}" ]; then
+if [ "$fixture_mode" = true ]; then
+  : "${AIBENCH_DISKUTIL_OUTPUT_FILE:?AIBENCH_DISKUTIL_OUTPUT_FILE is required in fixture mode}"
   disk_info=$(cat "$AIBENCH_DISKUTIL_OUTPUT_FILE")
 else
   command -v diskutil >/dev/null 2>&1 || fail "diskutil is unavailable"

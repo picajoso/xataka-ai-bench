@@ -5,7 +5,7 @@ import { stringify } from "yaml";
 import { afterEach, describe, expect, test } from "vitest";
 import { hashDirectory, hashFile } from "../../contracts/src/hash.js";
 import { loadBenchmark } from "../src/catalog.js";
-import { resolveBenchPaths } from "../src/paths.js";
+import { parseStorageIdentity, resolveBenchPaths } from "../src/paths.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -56,6 +56,18 @@ describe("canonical hashing", () => {
     writeFileSync(outside, "private");
     symlinkSync(outside, join(root, "escape.txt"));
     await expect(hashDirectory(root)).rejects.toThrow(/outside/i);
+  });
+
+  test("rejects invalid UTF-8 in declared text and normalizes common source formats", async () => {
+    const root = temporaryDirectory();
+    const invalid = join(root, "invalid.txt");
+    const lf = join(root, "script-lf.py");
+    const crlf = join(root, "script-crlf.py");
+    writeFileSync(invalid, Buffer.from([0x80]));
+    writeFileSync(lf, "print('ok')\n");
+    writeFileSync(crlf, "print('ok')\r\n");
+    await expect(hashFile(invalid)).rejects.toThrow(/UTF-8/i);
+    await expect(hashFile(lf)).resolves.toBe(await hashFile(crlf));
   });
 });
 
@@ -119,12 +131,47 @@ describe("benchmark catalog", () => {
     await expect(loadBenchmark(join(root, "benchmark.yaml"))).rejects.toThrow();
   });
 
+  test("rejects a benchmark manifest symlink escaping its lexical directory", async () => {
+    const root = temporaryDirectory();
+    const outside = temporaryDirectory();
+    writeFileSync(join(outside, "benchmark.yaml"), "schemaVersion: 1.0.0\n");
+    symlinkSync(join(outside, "benchmark.yaml"), join(root, "benchmark.yaml"));
+    await expect(loadBenchmark(join(root, "benchmark.yaml"))).rejects.toThrow(/escapes/i);
+  });
+
   test("resolves public and private roots only from the required external home", () => {
     const paths = resolveBenchPaths({ AIBENCH_HOME: "/Volumes/MacOS_VMs/xataka-ai-bench" });
     expect(paths.repoRoot).toBe("/Volumes/MacOS_VMs/xataka-ai-bench/platform");
     expect(paths.runsRoot).toBe("/Volumes/MacOS_VMs/xataka-ai-bench/state/runs");
     expect(() => resolveBenchPaths({})).toThrow(/AIBENCH_HOME/);
     expect(() => resolveBenchPaths({ AIBENCH_HOME: resolve("/") })).toThrow(/external SSD/i);
+  });
+
+  test("requires mounted, writable APFS disk identity", () => {
+    expect(parseStorageIdentity([
+      "Mounted: Yes",
+      "Mount Point: /Volumes/MacOS_VMs",
+      "File System Personality: APFS",
+      "Volume Read-Only: No",
+    ].join("\n"))).toEqual({ mounted: true, mountPoint: "/Volumes/MacOS_VMs", filesystem: "APFS", readOnly: false });
+    expect(() => parseStorageIdentity([
+      "Mounted: No",
+      "Mount Point: Not applicable (no file system)",
+      "File System Personality: APFS",
+      "Volume Read-Only: No",
+    ].join("\n"))).toThrow(/mounted/i);
+    expect(() => parseStorageIdentity([
+      "Mounted: Yes",
+      "Mount Point: /Volumes/MacOS_VMs",
+      "File System Personality: Mac OS Extended",
+      "Volume Read-Only: No",
+    ].join("\n"))).toThrow(/APFS/i);
+    expect(() => parseStorageIdentity([
+      "Mounted: Yes",
+      "Mount Point: /Volumes/MacOS_VMs",
+      "File System Personality: APFS",
+      "Volume Read-Only: Yes",
+    ].join("\n"))).toThrow(/read-only/i);
   });
 
   test("keeps the internal smoke benchmark valid but non-public", async () => {
