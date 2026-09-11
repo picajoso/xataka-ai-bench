@@ -63,11 +63,21 @@ describe("canonical hashing", () => {
     const invalid = join(root, "invalid.txt");
     const lf = join(root, "script-lf.py");
     const crlf = join(root, "script-crlf.py");
+    const readmeLf = join(root, "README");
+    const readmeCrlf = join(root, "COPYING");
+    const binaryLf = join(root, "lf.bin");
+    const binaryCrlf = join(root, "crlf.bin");
     writeFileSync(invalid, Buffer.from([0x80]));
     writeFileSync(lf, "print('ok')\n");
     writeFileSync(crlf, "print('ok')\r\n");
+    writeFileSync(readmeLf, "plain text\n");
+    writeFileSync(readmeCrlf, "plain text\r\n");
+    writeFileSync(binaryLf, Buffer.from("binary\n"));
+    writeFileSync(binaryCrlf, Buffer.from("binary\r\n"));
     await expect(hashFile(invalid)).rejects.toThrow(/UTF-8/i);
     await expect(hashFile(lf)).resolves.toBe(await hashFile(crlf));
+    await expect(hashFile(readmeLf)).resolves.toBe(await hashFile(readmeCrlf));
+    await expect(hashFile(binaryLf)).resolves.not.toBe(await hashFile(binaryCrlf));
   });
 });
 

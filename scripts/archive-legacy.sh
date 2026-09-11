@@ -60,30 +60,44 @@ extended_attribute_inventory() {
   ) > "$output"
 }
 
+acl_inventory() {
+  root=$1
+  output=$2
+  (
+    cd "$root"
+    LC_ALL=C /bin/ls -leR .
+  ) > "$output"
+}
+
 mkdir -p "$legacy_root"
 inventory "$source_root" "$temporary_directory/source-before.sha256"
 metadata_inventory "$source_root" "$temporary_directory/source-before.metadata" "$temporary_directory/source-before.bom"
 extended_attribute_inventory "$source_root" "$temporary_directory/source-before.xattrs"
+acl_inventory "$source_root" "$temporary_directory/source-before.acls"
 
 ditto --rsrc --extattr --acl "$source_root" "$destination_root"
 
 inventory "$destination_root" "$temporary_directory/destination.sha256"
 metadata_inventory "$destination_root" "$temporary_directory/destination.metadata" "$temporary_directory/destination.bom"
 extended_attribute_inventory "$destination_root" "$temporary_directory/destination.xattrs"
+acl_inventory "$destination_root" "$temporary_directory/destination.acls"
 inventory "$source_root" "$temporary_directory/source-after.sha256"
 metadata_inventory "$source_root" "$temporary_directory/source-after.metadata" "$temporary_directory/source-after.bom"
 extended_attribute_inventory "$source_root" "$temporary_directory/source-after.xattrs"
+acl_inventory "$source_root" "$temporary_directory/source-after.acls"
 
 if ! cmp -s "$temporary_directory/source-before.sha256" "$temporary_directory/source-after.sha256" ||
    ! cmp -s "$temporary_directory/source-before.metadata" "$temporary_directory/source-after.metadata" ||
-   ! cmp -s "$temporary_directory/source-before.xattrs" "$temporary_directory/source-after.xattrs"; then
+   ! cmp -s "$temporary_directory/source-before.xattrs" "$temporary_directory/source-after.xattrs" ||
+   ! cmp -s "$temporary_directory/source-before.acls" "$temporary_directory/source-after.acls"; then
   printf 'archive_error=source changed during copy; copied data retained for inspection\n' >&2
   exit 1
 fi
 
 if ! cmp -s "$temporary_directory/source-after.sha256" "$temporary_directory/destination.sha256" ||
    ! cmp -s "$temporary_directory/source-after.metadata" "$temporary_directory/destination.metadata" ||
-   ! cmp -s "$temporary_directory/source-after.xattrs" "$temporary_directory/destination.xattrs"; then
+   ! cmp -s "$temporary_directory/source-after.xattrs" "$temporary_directory/destination.xattrs" ||
+   ! cmp -s "$temporary_directory/source-after.acls" "$temporary_directory/destination.acls"; then
   printf 'archive_error=source and destination inventories differ; copied data retained for inspection\n' >&2
   exit 1
 fi
@@ -91,17 +105,19 @@ fi
 cp "$temporary_directory/destination.sha256" "$legacy_root/inventory.sha256"
 cp "$temporary_directory/destination.metadata" "$legacy_root/inventory.metadata"
 cp "$temporary_directory/destination.xattrs" "$legacy_root/inventory.xattrs"
+cp "$temporary_directory/destination.acls" "$legacy_root/inventory.acls"
 file_count=$(wc -l < "$legacy_root/inventory.sha256" | tr -d ' ')
 entry_count=$(wc -l < "$legacy_root/inventory.metadata" | tr -d ' ')
 byte_count=$(du -sk "$destination_root" | awk '{ print $1 * 1024 }')
 inventory_hash=$(shasum -a 256 "$legacy_root/inventory.sha256" | awk '{ print $1 }')
 metadata_hash=$(shasum -a 256 "$legacy_root/inventory.metadata" | awk '{ print $1 }')
 xattrs_hash=$(shasum -a 256 "$legacy_root/inventory.xattrs" | awk '{ print $1 }')
+acls_hash=$(shasum -a 256 "$legacy_root/inventory.acls" | awk '{ print $1 }')
 created_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
-printf '{\n  "schemaVersion": "1.0.0",\n  "createdAt": "%s",\n  "source": "%s",\n  "destination": "%s",\n  "fileCount": %s,\n  "entryCount": %s,\n  "byteCount": %s,\n  "inventorySha256": "%s",\n  "metadataInventorySha256": "%s",\n  "extendedAttributesInventorySha256": "%s",\n  "verified": true,\n  "sourceStable": true,\n  "metadataVerified": true,\n  "extendedAttributesVerified": true,\n  "sourceRemoved": false\n}\n' \
+printf '{\n  "schemaVersion": "1.0.0",\n  "createdAt": "%s",\n  "source": "%s",\n  "destination": "%s",\n  "fileCount": %s,\n  "entryCount": %s,\n  "byteCount": %s,\n  "inventorySha256": "%s",\n  "metadataInventorySha256": "%s",\n  "extendedAttributesInventorySha256": "%s",\n  "aclInventorySha256": "%s",\n  "verified": true,\n  "sourceStable": true,\n  "metadataVerified": true,\n  "extendedAttributesVerified": true,\n  "aclVerified": true,\n  "sourceRemoved": false\n}\n' \
   "$created_at" "$source_root" "$destination_root" "$file_count" "$entry_count" "$byte_count" \
-  "$inventory_hash" "$metadata_hash" "$xattrs_hash" \
+  "$inventory_hash" "$metadata_hash" "$xattrs_hash" "$acls_hash" \
   > "$legacy_root/inventory.json"
 
 printf 'archive_status=ok\n'

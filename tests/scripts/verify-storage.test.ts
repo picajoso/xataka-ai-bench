@@ -154,6 +154,7 @@ describe("verify-storage.sh", () => {
       sourceStable: true,
       metadataVerified: true,
       extendedAttributesVerified: true,
+      aclVerified: true,
       sourceRemoved: false,
     });
   });

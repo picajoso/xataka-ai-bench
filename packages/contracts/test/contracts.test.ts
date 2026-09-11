@@ -125,8 +125,19 @@ describe("core contracts", () => {
   test("enforces status-dependent failure, timing and publication invariants", () => {
     const run = jsonFixture("run.valid.json") as Record<string, unknown>;
     expect(() => parseRunManifest({ ...run, status: "FAILED", failure: null })).toThrow();
+    expect(() => parseRunManifest({
+      ...run,
+      status: "FAILED",
+      failure: { classification: "TIMEOUT", summary: "wrong state" },
+    })).toThrow();
     expect(() => parseRunManifest({ ...run, status: "RUNNING", finishedAt: "2026-09-11T14:49:10Z" })).toThrow();
     expect(() => parseRunManifest({ ...run, status: "PUBLISHED", publicationStatus: "private" })).toThrow();
+    expect(() => parseRunManifest({
+      ...run,
+      createdAt: "2026-09-11T14:45:00Z",
+      startedAt: "2026-09-11T14:50:00Z",
+      finishedAt: "2026-09-11T14:49:10Z",
+    })).toThrow();
   });
 
   test("rejects invalid numeric score ranges", () => {

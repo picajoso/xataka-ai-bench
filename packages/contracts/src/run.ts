@@ -135,6 +135,23 @@ export const RunManifestSchema = z.object({
   if (run.status === "TIMEOUT" && run.failure?.classification !== "TIMEOUT") {
     context.addIssue({ code: "custom", message: "timeout status requires TIMEOUT classification", path: ["failure"] });
   }
+  if (run.status === "FAILED" && run.failure &&
+      !["MODEL_FAILURE", "VALIDATION_FAILURE", "CANCELLED"].includes(run.failure.classification)) {
+    context.addIssue({ code: "custom", message: "failed status has an incompatible classification", path: ["failure"] });
+  }
+  if (run.status === "PARTIAL" && run.failure &&
+      !["MODEL_FAILURE", "VALIDATION_FAILURE"].includes(run.failure.classification)) {
+    context.addIssue({ code: "custom", message: "partial status has an incompatible classification", path: ["failure"] });
+  }
+  const createdTime = Date.parse(run.createdAt);
+  const startedTime = run.startedAt === null ? null : Date.parse(run.startedAt);
+  const finishedTime = run.finishedAt === null ? null : Date.parse(run.finishedAt);
+  if (startedTime !== null && startedTime < createdTime) {
+    context.addIssue({ code: "custom", message: "startedAt cannot precede createdAt", path: ["startedAt"] });
+  }
+  if (startedTime !== null && finishedTime !== null && finishedTime < startedTime) {
+    context.addIssue({ code: "custom", message: "finishedAt cannot precede startedAt", path: ["finishedAt"] });
+  }
   if ((run.status === "PUBLISHED") !== (run.publicationStatus === "published")) {
     context.addIssue({ code: "custom", message: "run and publication status disagree", path: ["publicationStatus"] });
   }
