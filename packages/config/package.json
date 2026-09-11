@@ -1,0 +1,14 @@
+{
+  "name": "@aibench/config",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run test",
+    "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  },
+  "dependencies": {
+    "@aibench/contracts": "workspace:*",
+    "yaml": "^2.0.0"
+  }
+}

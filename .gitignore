@@ -12,3 +12,4 @@ workspaces/
 raw-logs/
 *.log
 .DS_Store
+.pnpm-store/

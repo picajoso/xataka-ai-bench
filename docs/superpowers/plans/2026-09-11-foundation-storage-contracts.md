@@ -29,6 +29,7 @@
 - Create: `pnpm-workspace.yaml`
 - Create: `tsconfig.base.json`
 - Create: `vitest.config.ts`
+- Create: `eslint.config.mjs`
 - Create: `.gitignore`
 - Create: `apps/cli/package.json`
 - Create: `packages/contracts/package.json`
@@ -39,27 +40,27 @@
 - Produces: workspace packages `@aibench/contracts` and `@aibench/config`.
 - Produces: a repository-boundary test that fails if private runtime directories appear under `platform`.
 
-- [ ] **Step 1: Initialize the repository**
+- [x] **Step 1: Initialize the repository**
 
   Initialize `platform` with branch `main`. Confirm the only existing files are the approved specification and plans.
 
-- [ ] **Step 2: Add the minimal workspace configuration**
+- [x] **Step 2: Add the minimal workspace configuration**
 
   Set `packageManager` to `pnpm@11.0.8`, engines to Node `>=22 <23`, enable strict TypeScript checks, and add scripts `test`, `typecheck`, `lint` and `check`.
 
-- [ ] **Step 3: Add explicit ignore rules**
+- [x] **Step 3: Add explicit ignore rules**
 
   Ignore generated packages, build output, coverage, environment files, temporary capture files and any accidental `state` or `legacy` directory under the repository.
 
-- [ ] **Step 4: Write the boundary test**
+- [x] **Step 4: Write the boundary test**
 
   Assert that `state`, `workspaces`, `raw-logs`, `.env`, and credential-shaped files are absent from and ignored by the repository.
 
-- [ ] **Step 5: Install and verify**
+- [x] **Step 5: Install and verify**
 
   Run `pnpm install`, `pnpm test`, and `pnpm typecheck`; all must pass.
 
-- [ ] **Step 6: Review tracked files and commit**
+- [x] **Step 6: Review tracked files and commit**
 
   Run `git status --short --ignored`, verify that sibling `state` and `legacy` cannot be staged, and commit as `chore: initialize ai bench workspace`.
 

@@ -1,0 +1,9 @@
+{
+  "name": "@aibench/cli",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  }
+}
