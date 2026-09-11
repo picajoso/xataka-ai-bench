@@ -1,0 +1,14 @@
+.worktrees/
+node_modules/
+coverage/
+dist/
+.next/
+.env
+.env.*
+!.env.example
+state/
+legacy/
+workspaces/
+raw-logs/
+*.log
+.DS_Store
