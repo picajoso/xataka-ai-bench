@@ -76,31 +76,31 @@
 - Produces: exit code `0` only when `/Volumes/MacOS_VMs/xataka-ai-bench` is the active writable APFS volume.
 - Produces: `legacy/inventory.sha256` and `legacy/inventory.json` beside the copied legacy tree.
 
-- [ ] **Step 1: Write the failing storage-script tests**
+- [x] **Step 1: Write the failing storage-script tests**
 
   Cover mounted, missing, read-only, wrong-volume and insufficient-space cases by injecting `BENCH_ROOT` and fixture command output.
 
-- [ ] **Step 2: Run the focused tests and confirm failure**
+- [x] **Step 2: Run the focused tests and confirm failure**
 
   Run `pnpm vitest run tests/scripts/verify-storage.test.ts`; expect failure because the scripts do not exist.
 
-- [ ] **Step 3: Implement storage verification**
+- [x] **Step 3: Implement storage verification**
 
   `verify-storage.sh` must resolve the physical mount, require the prefix `/Volumes/MacOS_VMs/`, confirm write access without leaving a file behind, report available bytes, APFS format, ownership mode, encryption state and Docker availability.
 
-- [ ] **Step 4: Implement recoverable legacy archival**
+- [x] **Step 4: Implement recoverable legacy archival**
 
   `archive-legacy.sh` must copy `/Users/javipas/qwen-vs-codex-tests/` to `/Volumes/MacOS_VMs/xataka-ai-bench/legacy/qwen-vs-codex-tests/`, preserve metadata, generate sorted SHA-256 inventories on both sides, compare them, and refuse to remove the source.
 
-- [ ] **Step 5: Record the storage baseline**
+- [x] **Step 5: Record the storage baseline**
 
   Document the observed APFS volume, USB protocol, free space, disabled ownership, absent encryption, and the decision required before raw sensitive logs are retained.
 
-- [ ] **Step 6: Run tests and a non-copying preflight**
+- [x] **Step 6: Run tests and a non-copying preflight**
 
   Run `pnpm vitest run tests/scripts/verify-storage.test.ts` and `scripts/verify-storage.sh`; both must pass. Do not invoke the archival script until the user explicitly approves the 3.2 GB copy.
 
-- [ ] **Step 7: Commit the storage guardrails**
+- [x] **Step 7: Commit the storage guardrails**
 
   Commit as `chore: add external storage guardrails`.
 
