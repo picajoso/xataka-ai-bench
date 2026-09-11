@@ -1,0 +1,35 @@
+schemaVersion: 1.0.0
+slug: smoke-benchmark
+version: 1.0.0
+state: draft
+category: infrastructure
+title:
+  es: Prueba interna de humo
+  en: Internal smoke test
+prompts:
+  canonical:
+    locale: es
+    path: prompt.es.md
+    sha256: sha256:dea32399da9f4842107ae65949ee0ead0c306a45602a254e77c598090899d173
+  translations:
+    - locale: en
+      path: prompt.en.md
+      sha256: sha256:14f4ac9f522d755d6a09554e1c0102a9e6bbfb029baa31109dbd8a782cf981b0
+network:
+  policy: blocked
+  allowedHosts: []
+limits:
+  firstShotSeconds: 120
+  repairSeconds: 60
+evaluation:
+  type: verifiable
+  validators:
+    - smoke-answer
+inputs:
+  visibility: private
+  redistributable: false
+  fixtures: []
+capture:
+  mode: none
+publication:
+  eligible: false

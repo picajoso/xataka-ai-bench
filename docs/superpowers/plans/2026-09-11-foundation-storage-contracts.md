@@ -162,30 +162,30 @@
 - Produces: `resolveBenchPaths(env): BenchPaths` with `repoRoot`, `dataRoot`, `runsRoot`, `workspaceRoot`, `cacheRoot`, and `reviewRoot`.
 - Produces: `loadBenchmark(path): Promise<LoadedBenchmark>`.
 
-- [ ] **Step 1: Write failing hash and catalog tests**
+- [x] **Step 1: Write failing hash and catalog tests**
 
   Prove stable ordering, line-ending normalization for text, byte preservation for binaries, translated-prompt separation and rejection of paths escaping the benchmark directory.
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
   Run `pnpm --filter @aibench/config test`; expect missing implementations.
 
-- [ ] **Step 3: Implement canonical hashing**
+- [x] **Step 3: Implement canonical hashing**
 
   Hash a versioned manifest containing relative path, content hash and media class. Never follow symlinks outside the test directory.
 
-- [ ] **Step 4: Implement path resolution and catalog loading**
+- [x] **Step 4: Implement path resolution and catalog loading**
 
   Require `AIBENCH_HOME=/Volumes/MacOS_VMs/xataka-ai-bench`; fail with a clear error if the volume is unavailable. Load YAML and validate it through `@aibench/contracts`.
 
-- [ ] **Step 5: Add the synthetic smoke benchmark**
+- [x] **Step 5: Add the synthetic smoke benchmark**
 
   Use a harmless prompt that creates `answer.txt` containing `AI_BENCH_SMOKE_OK`. Mark it non-public and excluded from editorial results.
 
-- [ ] **Step 6: Verify the foundation**
+- [x] **Step 6: Verify the foundation**
 
   Run `pnpm check`; expect all tests, lint and typechecking to pass.
 
-- [ ] **Step 7: Commit the loader**
+- [x] **Step 7: Commit the loader**
 
   Commit as `feat: load and hash benchmark definitions`.
