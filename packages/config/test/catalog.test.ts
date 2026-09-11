@@ -67,6 +67,8 @@ describe("canonical hashing", () => {
     const readmeCrlf = join(root, "COPYING");
     const binaryLf = join(root, "lf.bin");
     const binaryCrlf = join(root, "crlf.bin");
+    const ambiguousCr = join(root, "cr.dat");
+    const ambiguousLf = join(root, "lf.dat");
     writeFileSync(invalid, Buffer.from([0x80]));
     writeFileSync(lf, "print('ok')\n");
     writeFileSync(crlf, "print('ok')\r\n");
@@ -74,10 +76,13 @@ describe("canonical hashing", () => {
     writeFileSync(readmeCrlf, "plain text\r\n");
     writeFileSync(binaryLf, Buffer.from("binary\n"));
     writeFileSync(binaryCrlf, Buffer.from("binary\r\n"));
+    writeFileSync(ambiguousCr, Buffer.from("A\rB"));
+    writeFileSync(ambiguousLf, Buffer.from("A\nB"));
     await expect(hashFile(invalid)).rejects.toThrow(/UTF-8/i);
     await expect(hashFile(lf)).resolves.toBe(await hashFile(crlf));
     await expect(hashFile(readmeLf)).resolves.toBe(await hashFile(readmeCrlf));
     await expect(hashFile(binaryLf)).resolves.not.toBe(await hashFile(binaryCrlf));
+    await expect(hashFile(ambiguousCr)).resolves.not.toBe(await hashFile(ambiguousLf));
   });
 });
 

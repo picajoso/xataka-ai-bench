@@ -20,6 +20,7 @@ describe("public repository boundary", () => {
     const credentialSamples = [
       "private-key.pem",
       "credentials.json",
+      "client.credentials.json",
       "session.token",
       "id_rsa",
       "id_ed25519",
@@ -51,11 +52,11 @@ describe("public repository boundary", () => {
     const credentialShaped = trackedFiles.filter((path) => {
       if (path.endsWith(".env.example")) return false;
       if (path.startsWith("packages/publisher/test/fixtures/unsafe/")) return false;
-      return /(^|\/)(?:\.env(?:\..+)?|credentials?(?:\..+)?|service-account[^/]*\.json|id_rsa|id_ed25519|secrets?(?:\..+)?|[^/]+\.(?:key|pem|p12|pfx|token))$/i.test(path);
+      return /(^|\/)(?:\.env(?:\..+)?|credentials?(?:\..+)?|[^/]+\.credentials\.json|service-account[^/]*\.json|id_rsa|id_ed25519|secrets?(?:\..+)?|[^/]+\.(?:key|pem|p12|pfx|token))$/i.test(path);
     });
     expect(credentialShaped).toEqual([]);
     for (const sample of credentialSamples) {
-      expect(/(^|\/)(?:credentials?(?:\..+)?|service-account[^/]*\.json|id_rsa|id_ed25519|[^/]+\.(?:key|pem|p12|pfx|token))$/i.test(sample)).toBe(true);
+      expect(/(^|\/)(?:credentials?(?:\..+)?|[^/]+\.credentials\.json|service-account[^/]*\.json|id_rsa|id_ed25519|[^/]+\.(?:key|pem|p12|pfx|token))$/i.test(sample)).toBe(true);
     }
   });
 });

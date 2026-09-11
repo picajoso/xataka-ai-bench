@@ -23,23 +23,11 @@ function digest(content: string | Buffer): string {
   return `sha256:${createHash("sha256").update(content).digest("hex")}`;
 }
 
-function decodesAsPlainText(content: Buffer): boolean {
-  try {
-    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(content);
-    return !Array.from(decoded).some((character) => {
-      const codePoint = character.codePointAt(0) ?? 0;
-      return codePoint <= 8 || codePoint === 11 || codePoint === 12 || (codePoint >= 14 && codePoint <= 31);
-    });
-  } catch {
-    return false;
-  }
-}
-
-function mediaClass(path: string, content: Buffer): "text" | "binary" {
+function mediaClass(path: string): "text" | "binary" {
   const extension = extname(path).toLowerCase();
   if (textExtensions.has(extension) || textBasenames.has(basename(path))) return "text";
   if (binaryExtensions.has(extension)) return "binary";
-  return decodesAsPlainText(content) ? "text" : "binary";
+  return "binary";
 }
 
 function normalizedText(content: Buffer): string {
@@ -54,12 +42,23 @@ function compareUtf8(left: string, right: string): number {
   return Buffer.compare(Buffer.from(left), Buffer.from(right));
 }
 
+function hashContent(
+  path: string,
+  content: Buffer,
+  declaredMediaClass?: "text" | "binary",
+): { mediaClass: "text" | "binary"; sha256: string } {
+  const classification = declaredMediaClass ?? mediaClass(path);
+  return {
+    mediaClass: classification,
+    sha256: digest(classification === "text" ? normalizedText(content) : content),
+  };
+}
+
 export async function hashFile(path: string, declaredMediaClass?: "text" | "binary"): Promise<string> {
   const metadata = await lstat(path);
   if (!metadata.isFile()) throw new Error(`Cannot hash non-file path: ${path}`);
   const content = await readFile(path);
-  const classification = declaredMediaClass ?? mediaClass(path, content);
-  return digest(classification === "text" ? normalizedText(content) : content);
+  return hashContent(path, content, declaredMediaClass).sha256;
 }
 
 type HashEntry = {
@@ -83,10 +82,11 @@ export async function hashDirectory(path: string): Promise<string> {
         await walk(absolutePath);
       } else if (child.isFile()) {
         const content = await readFile(absolutePath);
+        const hashed = hashContent(absolutePath, content);
         entries.push({
           path: relativePath,
-          mediaClass: mediaClass(absolutePath, content),
-          sha256: await hashFile(absolutePath),
+          mediaClass: hashed.mediaClass,
+          sha256: hashed.sha256,
         });
       } else if (child.isSymbolicLink()) {
         const resolvedTarget = await realpath(absolutePath);
