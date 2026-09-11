@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "20260911T144500Z-smoke-text-opencode-qwen38-a1b2c3",
+  "technicalAttemptId": "attempt-a1b2c3d4",
+  "createdAt": "2026-09-11T14:45:00Z",
+  "benchmark": {
+    "slug": "smoke-text",
+    "version": "1.0.0",
+    "definitionHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "promptHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "promptLocale": "es",
+    "inputsPublic": true
+  },
+  "system": {
+    "slug": "opencode-qwen38-ninfer-medium",
+    "version": "1.0.0",
+    "profileHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "attempt": {
+    "kind": "first-shot",
+    "parentRunId": null
+  },
+  "executionClass": "official-container",
+  "status": "READY_FOR_REVIEW",
+  "startedAt": "2026-09-11T14:45:01Z",
+  "finishedAt": "2026-09-11T14:49:10Z",
+  "failure": null,
+  "publicationStatus": "private"
+}

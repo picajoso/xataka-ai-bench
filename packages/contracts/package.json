@@ -4,10 +4,13 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "test": "vitest run test",
+    "test": "vitest run --root ../.. packages/contracts/test",
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
   },
   "dependencies": {
     "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "yaml": "^2.0.0"
   }
 }

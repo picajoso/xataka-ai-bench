@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "20260911T144500Z-smoke-text-opencode-qwen38-a1b2c3",
+  "publishedAt": "2026-09-11T15:00:00Z",
+  "official": true,
+  "sourceInputs": {
+    "visibility": "public",
+    "redistributable": true
+  },
+  "summary": {
+    "es": "Resultado de la prueba de humo.",
+    "en": "Smoke-test result."
+  },
+  "includedPaths": ["manifest.json", "summary.es.md"],
+  "evidencePaths": [],
+  "demo": null,
+  "packageHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+}

@@ -4,7 +4,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "test": "vitest run test",
+    "test": "vitest run --root ../.. packages/config/test",
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
   },
   "dependencies": {

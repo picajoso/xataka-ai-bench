@@ -121,27 +121,27 @@
 - Produces: Zod schemas and inferred types `BenchmarkDefinition`, `SystemProfile`, `BatchPlan`, `RunManifest`, `RunEvent`, `EvaluationReport`, and `PublicationManifest`.
 - Produces: `parseBenchmark`, `parseSystemProfile`, `parseRunManifest`, `parseEvaluationReport`, and `parsePublicationManifest`.
 
-- [ ] **Step 1: Write failing valid/invalid fixture tests**
+- [x] **Step 1: Write failing valid/invalid fixture tests**
 
   Cover semantic versions, lifecycle states, canonical prompt paths, network policy, time budgets, evaluation type, public-input declaration, agent/backend identity and immutable run identifiers.
 
-- [ ] **Step 2: Run contract tests and confirm failure**
+- [x] **Step 2: Run contract tests and confirm failure**
 
   Run `pnpm --filter @aibench/contracts test`; expect missing schema exports.
 
-- [ ] **Step 3: Implement the schemas with strict unknown-key rejection**
+- [x] **Step 3: Implement the schemas with strict unknown-key rejection**
 
   Require `schemaVersion`, stable slugs, ISO timestamps, explicit visibility, exact state enums and structured failure classification. Keep secrets represented only as environment-variable names.
 
-- [ ] **Step 4: Add cross-field refinements**
+- [x] **Step 4: Add cross-field refinements**
 
   Reject official publication when inputs are not public, reject a repair without a parent first-shot run, and reject a translated prompt that claims the canonical prompt hash.
 
-- [ ] **Step 5: Run contract tests and typecheck**
+- [x] **Step 5: Run contract tests and typecheck**
 
   Run `pnpm --filter @aibench/contracts test` and `pnpm typecheck`; both must pass.
 
-- [ ] **Step 6: Commit the contracts**
+- [x] **Step 6: Commit the contracts**
 
   Commit as `feat: define benchmark data contracts`.
 

@@ -1,0 +1,34 @@
+schemaVersion: 1.0.0
+slug: smoke-text
+version: 1.0.0
+state: draft
+category: coding
+title:
+  es: Prueba de humo
+  en: Smoke test
+prompts:
+  canonical:
+    locale: es
+    path: prompt.es.md
+    sha256: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  translations:
+    - locale: en
+      path: prompt.en.md
+      sha256: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+network:
+  policy: blocked
+  allowedHosts: []
+limits:
+  firstShotSeconds: 1800
+  repairSeconds: 900
+evaluation:
+  type: exhibitive
+  validators: []
+inputs:
+  visibility: public
+  redistributable: true
+  fixtures: []
+capture:
+  mode: none
+publication:
+  eligible: false
