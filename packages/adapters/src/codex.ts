@@ -1,5 +1,9 @@
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
 import { parseJsonLine } from "./jsonl.js";
-import type { AdapterEvent } from "./types.js";
+import type { AdapterContext, AdapterEvent, AgentAdapter, PreflightReport } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 export type CodexCommandOptions = {
   executable: string;
@@ -11,6 +15,21 @@ export type CodexCommandOptions = {
 export type ProcessCommand = {
   executable: string;
   args: string[];
+};
+
+export type CodexOutput = { stream: "stdout" | "stderr"; data: string };
+
+export type CodexLaunch = {
+  output(): AsyncIterable<CodexOutput>;
+  cancel(reason: string): Promise<void>;
+};
+
+export type CodexAdapterOptions = {
+  executable: string;
+  model?: string;
+  clock?: () => Date;
+  versionReader?: () => Promise<string>;
+  launcher?: (command: ProcessCommand) => CodexLaunch;
 };
 
 function numberAt(value: unknown): number | undefined {
@@ -94,4 +113,80 @@ export function normalizeCodexJsonLine(line: string, timestamp: string): Adapter
     return events;
   }
   return [];
+}
+
+function redact(value: string): string {
+  return value
+    .replace(/\bsk-[A-Za-z0-9_-]+\b/g, "[REDACTED]")
+    .replace(/\b(Bearer\s+)[^\s]+/gi, "$1[REDACTED]");
+}
+
+function defaultLauncher(command: ProcessCommand): CodexLaunch {
+  const child = spawn(command.executable, command.args, { stdio: ["ignore", "pipe", "pipe"] });
+  return {
+    async *output() {
+      for await (const data of child.stdout) yield { stream: "stdout", data: data.toString() };
+      for await (const data of child.stderr) yield { stream: "stderr", data: data.toString() };
+    },
+    async cancel() {
+      child.kill("SIGTERM");
+    },
+  };
+}
+
+export class CodexAdapter implements AgentAdapter {
+  readonly name = "codex";
+  readonly #options: CodexAdapterOptions;
+  #active: CodexLaunch | undefined;
+
+  constructor(options: CodexAdapterOptions) {
+    this.#options = options;
+  }
+
+  async preflight(context: AdapterContext): Promise<PreflightReport> {
+    void context;
+    try {
+      const version = this.#options.versionReader
+        ? await this.#options.versionReader()
+        : (await execFileAsync(this.#options.executable, ["--version"])).stdout.trim();
+      return { ok: true, adapter: this.name, version, diagnostics: [] };
+    } catch (error) {
+      return { ok: false, adapter: this.name, version: "unavailable", diagnostics: [redact(error instanceof Error ? error.message : "Codex version check failed")] };
+    }
+  }
+
+  async *start(context: AdapterContext): AsyncIterable<AdapterEvent> {
+    if (this.#active) throw new Error("Codex adapter is already running");
+    const command = buildCodexCommand({
+      executable: this.#options.executable,
+      workspaceRoot: context.workspaceRoot,
+      prompt: context.prompt,
+      ...(this.#options.model ? { model: this.#options.model } : {}),
+    });
+    const launch = (this.#options.launcher ?? defaultLauncher)(command);
+    this.#active = launch;
+    const clock = this.#options.clock ?? (() => new Date());
+    try {
+      for await (const chunk of launch.output()) {
+        await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
+        const timestamp = clock().toISOString();
+        if (chunk.stream === "stderr") {
+          for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) {
+            yield { type: "diagnostic", timestamp, stream: "stderr", level: "warning", message: redact(line) };
+          }
+          continue;
+        }
+        for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) {
+          yield* normalizeCodexJsonLine(line, timestamp);
+        }
+      }
+    } finally {
+      if (this.#active === launch) this.#active = undefined;
+    }
+  }
+
+  async cancel(reason: string): Promise<void> {
+    void reason;
+    await this.#active?.cancel(reason);
+  }
 }

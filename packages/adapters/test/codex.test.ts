@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildCodexCommand, normalizeCodexJsonLine } from "../src/index.js";
+import { CodexAdapter, buildCodexCommand, normalizeCodexJsonLine, type CodexLaunch, type CodexOutput } from "../src/index.js";
 
 const timestamp = "2026-09-12T10:00:00.000Z";
 
@@ -41,5 +41,68 @@ describe("Codex command construction", () => {
     expect(() => buildCodexCommand({
       executable: "codex", workspaceRoot: "/workspace/run-1", prompt: "Build it.", model: "sk-secret-value",
     })).toThrow(/secret/i);
+  });
+});
+
+describe("CodexAdapter", () => {
+  test("records the installed CLI version without running a model", async () => {
+    const adapter = new CodexAdapter({
+      executable: "codex",
+      versionReader: async () => "codex-cli 0.154.0",
+      launcher: () => { throw new Error("must not launch during preflight"); },
+    });
+
+    await expect(adapter.preflight({ runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {} }))
+      .resolves.toEqual({ ok: true, adapter: "codex", version: "codex-cli 0.154.0", diagnostics: [] });
+  });
+
+  test("normalizes stdout, preserves raw records privately and forwards stderr as diagnostics", async () => {
+    const raw: unknown[] = [];
+    let cancelled = false;
+    const launch: CodexLaunch = {
+      async *output() {
+        yield { stream: "stdout", data: '{"type":"thread.started","thread_id":"thread-1"}\n' };
+        yield { stream: "stderr", data: "transient warning\n" };
+        yield { stream: "stdout", data: '{"type":"turn.completed","exit_code":0}\n' };
+      },
+      async cancel() { cancelled = true; },
+    };
+    const adapter = new CodexAdapter({
+      executable: "codex", clock: () => new Date(timestamp),
+      versionReader: async () => "codex-cli 0.154.0", launcher: () => launch,
+    });
+    const events = [];
+    for await (const event of adapter.start({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      rawEventSink: async (record) => { raw.push(record); },
+    })) events.push(event);
+    await adapter.cancel("test cancellation after completion");
+
+    expect(events).toEqual([
+      { type: "session.started", timestamp, sessionId: "thread-1" },
+      { type: "diagnostic", timestamp, stream: "stderr", level: "warning", message: "transient warning" },
+      { type: "session.finished", timestamp, outcome: "success", exitCode: 0 },
+    ]);
+    expect(raw).toHaveLength(3);
+    expect(cancelled).toBe(false);
+  });
+
+  test("cancels the active owned process", async () => {
+    let release: (() => void) | undefined;
+    let cancelled = false;
+    const launch: CodexLaunch = {
+      async *output() {
+        await new Promise<void>((resolve) => { release = resolve; });
+        yield* [] as CodexOutput[];
+      },
+      async cancel() { cancelled = true; release?.(); },
+    };
+    const adapter = new CodexAdapter({ executable: "codex", launcher: () => launch });
+    const iterator = adapter.start({ runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {} })[Symbol.asyncIterator]();
+    const pending = iterator.next();
+    await adapter.cancel("timeout");
+    await pending;
+
+    expect(cancelled).toBe(true);
   });
 });
