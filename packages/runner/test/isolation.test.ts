@@ -62,7 +62,7 @@ describe("Docker isolation contract", () => {
 
   test("uses a named network only when the policy allows it", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
-    const workspace = await isolation.prepare(request({ networkPolicy: "package-registry" }));
+    const workspace = await isolation.prepare(request({ networkPolicy: "package-registries" }));
 
     expect(workspace.commandFor({ executable: "agent", args: [] })).toContain("aibench-package-registry");
   });

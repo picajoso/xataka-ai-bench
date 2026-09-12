@@ -1,6 +1,6 @@
 export type ExecutionClass = "official-container" | "experimental-native";
 
-export type NetworkPolicy = "blocked" | "package-registry" | "package-registry-and-local";
+export type NetworkPolicy = "blocked" | "package-registries" | "package-registries-and-local-endpoint";
 
 export interface ResourceLimits {
   cpu: number;

@@ -9,8 +9,8 @@ export interface DockerIsolationOptions {
 
 const networkNames = {
   blocked: "none",
-  "package-registry": "aibench-package-registry",
-  "package-registry-and-local": "aibench-package-registry-and-local",
+  "package-registries": "aibench-package-registry",
+  "package-registries-and-local-endpoint": "aibench-package-registry-and-local",
 } as const;
 
 export class DockerIsolationProvider implements IsolationProvider {
