@@ -27,7 +27,11 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.2)(yaml@2.9.0)
 
-  apps/cli: {}
+  apps/cli:
+    dependencies:
+      '@aibench/config':
+        specifier: workspace:*
+        version: link:../../packages/config
 
   packages/adapters:
     dependencies:
