@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildOpenCodeCommand, normalizeOpenCodeJsonLine } from "../src/index.js";
+import { OpenCodeAdapter, buildOpenCodeCommand, normalizeOpenCodeJsonLine, type OpenCodeLaunch } from "../src/index.js";
 
 const timestamp = "2026-09-12T10:00:00.000Z";
 
@@ -17,5 +17,24 @@ describe("OpenCode command construction", () => {
     const command = buildOpenCodeCommand({ executable: "opencode", workspaceRoot: "/workspace", prompt: "Build it.", model: "lmstudio/qwen3.8-27b", variant: "max" });
     expect(command.args).toEqual(["run", "--format", "json", "--dir", "/workspace", "--model", "lmstudio/qwen3.8-27b", "--variant", "max", "Build it."]);
     expect(command.args).not.toContain("--auto");
+  });
+});
+
+describe("OpenCodeAdapter", () => {
+  test("preflights locally and normalizes private streamed JSON", async () => {
+    const raw: unknown[] = [];
+    const launch: OpenCodeLaunch = {
+      async *output() {
+        yield { stream: "stdout", data: '{"type":"session.created","properties":{"info":{"id":"s1"}}}\n' };
+        yield { stream: "stdout", data: '{"type":"session.status","properties":{"status":{"type":"idle"}}}\n' };
+      },
+      async cancel() {},
+    };
+    const adapter = new OpenCodeAdapter({ executable: "opencode", model: "ninfer/qwen3.8-27b", variant: "max", clock: () => new Date(timestamp), versionReader: async () => "1.18.30", launcher: () => launch });
+    await expect(adapter.preflight({ runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {} })).resolves.toMatchObject({ ok: true, version: "1.18.30" });
+    const events = [];
+    for await (const event of adapter.start({ runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {}, rawEventSink: async (value) => { raw.push(value); } })) events.push(event);
+    expect(events.map((event) => event.type)).toEqual(["session.started", "session.finished"]);
+    expect(raw).toHaveLength(2);
   });
 });

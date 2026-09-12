@@ -1,5 +1,9 @@
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
 import { parseJsonLine } from "./jsonl.js";
-import type { AdapterEvent } from "./types.js";
+import type { AdapterContext, AdapterEvent, AgentAdapter, PreflightReport } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 export type OpenCodeCommandOptions = {
   executable: string;
@@ -7,6 +11,14 @@ export type OpenCodeCommandOptions = {
   prompt: string;
   model: string;
   variant?: string;
+};
+
+export type OpenCodeOutput = { stream: "stdout" | "stderr"; data: string };
+export type OpenCodeLaunch = { output(): AsyncIterable<OpenCodeOutput>; cancel(reason: string): Promise<void> };
+export type OpenCodeAdapterOptions = Omit<OpenCodeCommandOptions, "workspaceRoot" | "prompt"> & {
+  clock?: () => Date;
+  versionReader?: () => Promise<string>;
+  launcher?: (command: { executable: string; args: string[] }) => OpenCodeLaunch;
 };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -46,4 +58,58 @@ export function normalizeOpenCodeJsonLine(line: string, timestamp: string): Adap
     return [{ type: "session.finished", timestamp, outcome: "success", exitCode: 0 }];
   }
   return [];
+}
+
+function redact(value: string): string {
+  return value.replace(/\bsk-[A-Za-z0-9_-]+\b/g, "[REDACTED]").replace(/\b(Bearer\s+)[^\s]+/gi, "$1[REDACTED]");
+}
+
+function defaultLauncher(command: { executable: string; args: string[] }): OpenCodeLaunch {
+  const child = spawn(command.executable, command.args, { stdio: ["ignore", "pipe", "pipe"] });
+  return {
+    async *output() {
+      for await (const data of child.stdout) yield { stream: "stdout", data: data.toString() };
+      for await (const data of child.stderr) yield { stream: "stderr", data: data.toString() };
+    },
+    async cancel() { child.kill("SIGTERM"); },
+  };
+}
+
+export class OpenCodeAdapter implements AgentAdapter {
+  readonly name = "opencode";
+  readonly #options: OpenCodeAdapterOptions;
+  #active: OpenCodeLaunch | undefined;
+
+  constructor(options: OpenCodeAdapterOptions) { this.#options = options; }
+
+  async preflight(context: AdapterContext): Promise<PreflightReport> {
+    void context;
+    try {
+      const version = this.#options.versionReader ? await this.#options.versionReader() : (await execFileAsync(this.#options.executable, ["--version"])).stdout.trim();
+      return { ok: true, adapter: this.name, version, diagnostics: [] };
+    } catch (error) {
+      return { ok: false, adapter: this.name, version: "unavailable", diagnostics: [redact(error instanceof Error ? error.message : "OpenCode version check failed")] };
+    }
+  }
+
+  async *start(context: AdapterContext): AsyncIterable<AdapterEvent> {
+    if (this.#active) throw new Error("OpenCode adapter is already running");
+    const command = buildOpenCodeCommand({ executable: this.#options.executable, workspaceRoot: context.workspaceRoot, prompt: context.prompt, model: this.#options.model, ...(this.#options.variant ? { variant: this.#options.variant } : {}) });
+    const launch = (this.#options.launcher ?? defaultLauncher)(command);
+    this.#active = launch;
+    const clock = this.#options.clock ?? (() => new Date());
+    try {
+      for await (const chunk of launch.output()) {
+        await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
+        const timestamp = clock().toISOString();
+        if (chunk.stream === "stderr") {
+          for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) yield { type: "diagnostic", timestamp, stream: "stderr", level: "warning", message: redact(line) };
+        } else {
+          for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) yield* normalizeOpenCodeJsonLine(line, timestamp);
+        }
+      }
+    } finally { if (this.#active === launch) this.#active = undefined; }
+  }
+
+  async cancel(reason: string): Promise<void> { await this.#active?.cancel(reason); }
 }
