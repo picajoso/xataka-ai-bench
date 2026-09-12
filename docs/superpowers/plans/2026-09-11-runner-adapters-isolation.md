@@ -142,19 +142,19 @@
 - Produces: `IsolatedWorkspace.exec(command): AsyncIterable<ProcessEvent>`.
 - Produces: `IsolatedWorkspace.dispose(): Promise<void>`.
 
-- [ ] **Step 1: Write failing isolation contract tests**
+- [x] **Step 1: Write failing isolation contract tests**
 
   Prove workspace confinement, read-only fixture mounting, writable output, network policy translation, process cleanup and rejection of native mode for an official run.
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
   Run `pnpm --filter @aibench/runner test -- isolation`; expect missing providers.
 
-- [ ] **Step 3: Implement the Docker provider**
+- [x] **Step 3: Implement the Docker provider**
 
   Use explicit bind mounts under the external SSD, a non-root container user, capped CPU/memory/pids, a read-only root filesystem where compatible, and named network policies. Do not mount the Docker socket.
 
-- [ ] **Step 4: Implement labeled native mode**
+- [x] **Step 4: Implement labeled native mode**
 
   Require `executionClass: experimental-native`; make it impossible to emit an official comparable result from this provider.
 

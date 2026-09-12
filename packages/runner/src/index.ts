@@ -1,4 +1,7 @@
 export * from "./ids.js";
+export * from "./isolation/docker.js";
+export * from "./isolation/native.js";
+export * from "./isolation/types.js";
 export * from "./lock.js";
 export * from "./planner.js";
 export * from "./run-store.js";
