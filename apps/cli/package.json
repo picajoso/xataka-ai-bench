@@ -7,6 +7,9 @@
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
   },
   "dependencies": {
-    "@aibench/config": "workspace:*"
+    "@aibench/adapters": "workspace:*",
+    "@aibench/config": "workspace:*",
+    "@aibench/contracts": "workspace:*",
+    "@aibench/runner": "workspace:*"
   }
 }

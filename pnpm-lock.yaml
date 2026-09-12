@@ -29,9 +29,18 @@ importers:
 
   apps/cli:
     dependencies:
+      '@aibench/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@aibench/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@aibench/runner':
+        specifier: workspace:*
+        version: link:../../packages/runner
 
   packages/adapters:
     dependencies:
