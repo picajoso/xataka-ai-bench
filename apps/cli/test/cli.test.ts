@@ -14,3 +14,10 @@ describe("aibench doctor", () => {
     expect(result).toEqual({ exitCode: 1, output: "doctor: External SSD is not mounted\n" });
   });
 });
+
+describe("aibench list", () => {
+  test("prints the available benchmark slugs as JSON", async () => {
+    const result = await runCli(["list", "--json"], { list: () => ["smoke-benchmark"] });
+    expect(result).toEqual({ exitCode: 0, output: '{"benchmarks":["smoke-benchmark"]}\n' });
+  });
+});

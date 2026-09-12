@@ -1,11 +1,15 @@
 import { resolveBenchPaths } from "@aibench/config";
 
 export type CliResult = { exitCode: number; output: string };
-export type CliDependencies = { doctor?: () => unknown };
+export type CliDependencies = { doctor?: () => unknown; list?: () => string[] };
 
 export async function runCli(args: string[], dependencies: CliDependencies = {}): Promise<CliResult> {
   const [command, ...flags] = args;
-  if (command !== "doctor") return { exitCode: 2, output: "Usage: aibench doctor [--json]\n" };
+  if (command === "list") {
+    const benchmarks = (dependencies.list ?? (() => ["smoke-benchmark"]))();
+    return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ benchmarks })}\n` : `${benchmarks.join("\n")}\n` };
+  }
+  if (command !== "doctor") return { exitCode: 2, output: "Usage: aibench doctor|list [--json]\n" };
   try {
     const result = (dependencies.doctor ?? (() => {
       const paths = resolveBenchPaths();
