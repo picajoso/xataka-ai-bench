@@ -79,7 +79,8 @@ export class FakeAdapter implements AgentAdapter {
     this.#options = options;
   }
 
-  async preflight(_context: AdapterContext): Promise<PreflightReport> {
+  async preflight(context: AdapterContext): Promise<PreflightReport> {
+    void context;
     return this.#options.preflight ?? {
       ok: true,
       adapter: this.name,

@@ -57,6 +57,15 @@ importers:
         specifier: ^2.0.0
         version: 2.9.0
 
+  packages/runner:
+    dependencies:
+      '@aibench/adapters':
+        specifier: workspace:*
+        version: link:../adapters
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
 packages:
 
   '@esbuild/aix-ppc64@0.28.2':

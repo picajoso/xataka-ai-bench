@@ -73,23 +73,23 @@
 - Produces: `transition(runId, nextState, reason?): Promise<RunManifest>`.
 - Produces: sortable `run_id` values containing UTC time and a random suffix.
 
-- [ ] **Step 1: Write failing state and persistence tests**
+- [x] **Step 1: Write failing state and persistence tests**
 
   Cover every allowed transition, forbidden regression, interrupted write, resume after process death, immutable terminal records and separate technical attempt identifiers.
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
   Run `pnpm --filter @aibench/runner test`; expect missing store and state machine.
 
-- [ ] **Step 3: Implement atomic manifests and append-only events**
+- [x] **Step 3: Implement atomic manifests and append-only events**
 
   Write a temporary manifest in the same directory, sync, then rename. Never rewrite `events.jsonl`; append a terminal correction event if reconciliation is needed.
 
-- [ ] **Step 4: Implement strict transitions**
+- [x] **Step 4: Implement strict transitions**
 
   Permit infrastructure retry only from `INFRA_ERROR`; model failures remain terminal outcomes. Keep publication status orthogonal to benchmark status.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
   Run package tests and `pnpm check`; commit as `feat: persist immutable run state`.
 

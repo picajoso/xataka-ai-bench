@@ -70,7 +70,9 @@ describe("FakeAdapter", () => {
       fileChanges: [{ path: "../escape.txt", content: "no" }],
     });
     const consume = async () => {
-      for await (const _event of adapter.start(context())) { /* consume */ }
+      for await (const event of adapter.start(context())) {
+        void event;
+      }
     };
     await expect(consume()).rejects.toThrow(/outside/i);
   });
