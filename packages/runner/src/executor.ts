@@ -1,0 +1,96 @@
+import type { AgentAdapter } from "@aibench/adapters";
+import type { RunManifest } from "@aibench/contracts";
+import type { IsolationProvider, IsolationRequest, IsolatedWorkspace } from "./isolation/types.js";
+import { RunStore, type RunHandle } from "./run-store.js";
+import type { RunStatus } from "./state-machine.js";
+
+export type ExecuteRunOptions = {
+  store: RunStore;
+  run: RunHandle;
+  prompt: string;
+  timeoutMs: number;
+  adapter: AgentAdapter;
+  isolation: IsolationProvider;
+  isolationRequest: IsolationRequest;
+  environment?: Readonly<Record<string, string>>;
+};
+
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown runner error";
+}
+
+export async function executeRun(options: ExecuteRunOptions): Promise<RunManifest> {
+  let phase: RunStatus = options.run.manifest.status;
+  let workspace: IsolatedWorkspace | undefined;
+  let timedOut = false;
+  let timer: NodeJS.Timeout | undefined;
+
+  try {
+    phase = "PREFLIGHT";
+    await options.store.transition(options.run.runId, phase);
+    workspace = await options.isolation.prepare(options.isolationRequest);
+    const context = {
+      runId: options.run.runId,
+      prompt: options.prompt,
+      workspaceRoot: workspace.request.workspacePath,
+      environment: options.environment ?? {},
+    };
+    const preflight = await options.adapter.preflight(context);
+    await options.store.appendEvent(options.run.runId, {
+      type: "diagnostic",
+      payload: { adapter: preflight.adapter, version: preflight.version, diagnostics: preflight.diagnostics },
+    });
+    if (!preflight.ok) {
+      return await options.store.transition(options.run.runId, "INFRA_ERROR", {
+        classification: "INFRA_ERROR",
+        summary: preflight.diagnostics.join("; ") || "Adapter preflight failed",
+      });
+    }
+
+    phase = "RUNNING";
+    await options.store.transition(options.run.runId, phase);
+    timer = setTimeout(() => {
+      timedOut = true;
+      void options.adapter.cancel(`Run exceeded its ${options.timeoutMs}ms limit`);
+    }, options.timeoutMs);
+
+    let outcome: "success" | "failed" | "cancelled" | undefined;
+    let exitCode: number | null | undefined;
+    for await (const event of options.adapter.start(context)) {
+      await options.store.appendEvent(options.run.runId, { type: "agent", payload: { ...event } });
+      if (event.type === "session.finished") {
+        outcome = event.outcome;
+        exitCode = event.exitCode;
+      }
+    }
+    clearTimeout(timer);
+    timer = undefined;
+
+    if (timedOut) {
+      return await options.store.transition(options.run.runId, "TIMEOUT", {
+        classification: "TIMEOUT",
+        summary: `Run exceeded its ${options.timeoutMs}ms limit`,
+      });
+    }
+    if (outcome === "success" && exitCode === 0) {
+      phase = "VALIDATING";
+      await options.store.transition(options.run.runId, phase);
+      return await options.store.transition(options.run.runId, "READY_FOR_REVIEW");
+    }
+    return await options.store.transition(options.run.runId, "FAILED", {
+      classification: outcome === "cancelled" ? "CANCELLED" : "MODEL_FAILURE",
+      summary: outcome === "cancelled" ? "Adapter cancelled the run" : "Agent session did not finish successfully",
+    });
+  } catch (error) {
+    if (phase === "PREFLIGHT" || phase === "RUNNING" || phase === "VALIDATING") {
+      return await options.store.transition(options.run.runId, "INFRA_ERROR", {
+        classification: "INFRA_ERROR",
+        summary: message(error),
+      });
+    }
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+    await workspace?.dispose();
+  }
+}

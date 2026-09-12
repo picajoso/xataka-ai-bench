@@ -1,4 +1,5 @@
 export * from "./ids.js";
+export * from "./executor.js";
 export * from "./isolation/docker.js";
 export * from "./isolation/native.js";
 export * from "./isolation/types.js";
