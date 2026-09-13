@@ -1,6 +1,6 @@
 import { readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
-import { hashFile, parseBenchmark, type BenchmarkDefinition } from "@aibench/contracts";
+import { hashFile, parseBenchmark, parseSystemProfile, type BenchmarkDefinition, type SystemProfile } from "@aibench/contracts";
 import { parse } from "yaml";
 
 export type LoadedBenchmark = {
@@ -8,6 +8,11 @@ export type LoadedBenchmark = {
   directory: string;
   definitionHash: string;
   promptHashes: Record<string, string>;
+};
+
+export type LoadedSystemProfile = {
+  profile: SystemProfile;
+  profileHash: string;
 };
 
 function assertContained(root: string, candidate: string): void {
@@ -56,5 +61,16 @@ export async function loadBenchmark(manifestPath: string): Promise<LoadedBenchma
     directory,
     definitionHash: await hashFile(absoluteManifestPath),
     promptHashes,
+  };
+}
+
+export async function loadSystemProfile(profilePath: string): Promise<LoadedSystemProfile> {
+  const requested = resolve(profilePath);
+  const directory = await realpath(dirname(requested));
+  const physicalPath = await realpath(requested);
+  assertContained(directory, physicalPath);
+  return {
+    profile: parseSystemProfile(parse(await readFile(physicalPath, "utf8"))),
+    profileHash: await hashFile(physicalPath),
   };
 }

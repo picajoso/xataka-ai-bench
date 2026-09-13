@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { stringify } from "yaml";
 import { afterEach, describe, expect, test } from "vitest";
 import { hashDirectory, hashFile } from "../../contracts/src/hash.js";
-import { loadBenchmark } from "../src/catalog.js";
+import { loadBenchmark, loadSystemProfile } from "../src/catalog.js";
 import { parseStorageIdentity, resolveBenchPaths } from "../src/paths.js";
 
 const temporaryDirectories: string[] = [];
@@ -207,5 +207,12 @@ describe("benchmark catalog", () => {
       capture: { mode: "desktop" },
       publication: { eligible: true },
     });
+  });
+
+  test("loads a versioned system profile and calculates its immutable hash", async () => {
+    const repositoryRoot = resolve(import.meta.dirname, "../../..");
+    const loaded = await loadSystemProfile(resolve(repositoryRoot, "systems/opencode-qwen38-ninfer-medium/system.yaml"));
+    expect(loaded.profile.slug).toBe("opencode-qwen38-ninfer-medium");
+    expect(loaded.profileHash).toMatch(/^sha256:/);
   });
 });
