@@ -25,7 +25,7 @@ describe("legacy inventory", () => {
 
     expect(report.counts).toEqual({ generated: 1, repositoryMetadata: 1, evidence: 2, source: 1, unknown: 1 });
     expect(report.entries.map((entry) => `${entry.path}:${entry.classification}`)).toEqual([
-      ".git/HEAD:repositoryMetadata", "RESULTS.md:evidence", "app.js:source", "mystery.dat:unknown", "node_modules/library/index.js:generated", "shots/frame.png:evidence",
+      ".git:repositoryMetadata", "RESULTS.md:evidence", "app.js:source", "mystery.dat:unknown", "node_modules:generated", "shots/frame.png:evidence",
     ]);
   });
 });
