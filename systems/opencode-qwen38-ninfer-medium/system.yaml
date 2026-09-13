@@ -24,7 +24,8 @@ software:
 inference:
   reasoning: medium
   quantization: null
-  parameters: {}
+  parameters:
+    opencodeModel: ninfer/qwen3.8-27b-nvfp4
 permissions:
   networkPolicy: package-registries-and-local-endpoint
   tools: [shell]
