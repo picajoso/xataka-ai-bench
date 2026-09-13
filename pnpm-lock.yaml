@@ -45,6 +45,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/runner
 
+  apps/web:
+    dependencies:
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+
   packages/adapters:
     dependencies:
       '@aibench/contracts':
