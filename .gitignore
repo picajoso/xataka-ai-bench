@@ -25,3 +25,5 @@ raw-logs/
 *.log
 .DS_Store
 .pnpm-store/
+apps/web/.next/
+apps/web/out/
