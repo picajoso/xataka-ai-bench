@@ -1,0 +1,32 @@
+schemaVersion: 1.0.0
+slug: opencode-qwen38-ninfer-off
+version: 1.0.0
+displayName: OpenCode + Qwen3.8-27B (nInfer, sin razonamiento)
+model:
+  provider: Qwen
+  name: Qwen3.8-27B
+  version: null
+agent:
+  name: OpenCode
+  version: unrecorded
+  executable: opencode
+backend:
+  kind: local
+  provider: nInfer
+  name: PC inference server
+  endpointDescription: Private LAN endpoint on the inference PC
+hardware:
+  controller: Mac mini M4
+  inference: PC with RTX 5090
+software:
+  os: macOS
+  versions: {}
+inference:
+  reasoning: off
+  quantization: null
+  parameters: {}
+permissions:
+  networkPolicy: package-registries-and-local-endpoint
+  tools: [shell]
+credentials:
+  environmentVariables: []

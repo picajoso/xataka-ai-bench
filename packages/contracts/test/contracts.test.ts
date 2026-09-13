@@ -78,6 +78,19 @@ describe("core contracts", () => {
     })).toThrow();
   });
 
+  test("accepts the documented OpenCode local and historical system profiles", () => {
+    const repositoryRoot = resolve(import.meta.dirname, "../../..");
+    for (const slug of [
+      "opencode-qwen38-lmstudio-max",
+      "opencode-qwen38-ninfer-off",
+      "opencode-qwen38-ninfer-medium",
+      "opencode-glm53-oxalpha",
+    ]) {
+      const profile = parse(readFileSync(resolve(repositoryRoot, `systems/${slug}/system.yaml`), "utf8"));
+      expect(parseSystemProfile(profile).slug).toBe(slug);
+    }
+  });
+
   test("requires immutable sortable run and technical-attempt identifiers", () => {
     const run = jsonFixture("run.valid.json") as Record<string, unknown>;
     expect(() => parseRunManifest({ ...run, runId: "run-1" })).toThrow();

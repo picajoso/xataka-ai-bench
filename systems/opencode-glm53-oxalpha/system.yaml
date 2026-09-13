@@ -1,0 +1,32 @@
+schemaVersion: 1.0.0
+slug: opencode-glm53-oxalpha
+version: 1.0.0
+displayName: OpenCode + GLM-5.3 (ox alpha histórico)
+model:
+  provider: Z.ai
+  name: GLM-5.3
+  version: null
+agent:
+  name: OpenCode
+  version: unrecorded
+  executable: opencode
+backend:
+  kind: cloud
+  provider: temporary provider
+  name: ox alpha
+  endpointDescription: Temporary public availability; endpoint not recorded
+hardware:
+  controller: Mac mini M4
+  inference: null
+software:
+  os: macOS
+  versions: {}
+inference:
+  reasoning: unknown
+  quantization: null
+  parameters: {}
+permissions:
+  networkPolicy: package-registries
+  tools: [shell]
+credentials:
+  environmentVariables: []

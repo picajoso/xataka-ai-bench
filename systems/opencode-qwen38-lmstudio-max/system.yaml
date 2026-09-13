@@ -1,0 +1,32 @@
+schemaVersion: 1.0.0
+slug: opencode-qwen38-lmstudio-max
+version: 1.0.0
+displayName: OpenCode + Qwen3.8-27B (LM Studio, razonamiento máximo)
+model:
+  provider: Qwen
+  name: Qwen3.8-27B
+  version: null
+agent:
+  name: OpenCode
+  version: unrecorded
+  executable: opencode
+backend:
+  kind: local
+  provider: LM Studio
+  name: PC inference server
+  endpointDescription: Private LAN endpoint on the inference PC
+hardware:
+  controller: Mac mini M4
+  inference: PC with RTX 5090
+software:
+  os: macOS
+  versions: {}
+inference:
+  reasoning: max
+  quantization: NVFP4
+  parameters: {}
+permissions:
+  networkPolicy: package-registries-and-local-endpoint
+  tools: [shell]
+credentials:
+  environmentVariables: []
