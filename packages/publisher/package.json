@@ -1,0 +1,10 @@
+{
+  "name": "@aibench/publisher",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --root ../.. packages/publisher/test",
+    "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  }
+}

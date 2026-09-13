@@ -89,6 +89,8 @@ importers:
         specifier: ^1.63.0
         version: 1.63.0
 
+  packages/publisher: {}
+
   packages/runner:
     dependencies:
       '@aibench/adapters':
