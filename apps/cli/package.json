@@ -2,6 +2,9 @@
   "name": "@aibench/cli",
   "private": true,
   "type": "module",
+  "bin": {
+    "aibench": "./src/bin.ts"
+  },
   "scripts": {
     "test": "vitest run --root ../.. apps/cli",
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
