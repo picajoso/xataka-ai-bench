@@ -2,12 +2,30 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { stageApprovedCandidate } from "../src/index.js";
+import { approveCandidate, buildPublicationCandidate, stageApprovedCandidate } from "../src/index.js";
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
 
 describe("publication staging", () => {
+  test("takes a synthetic public result from candidate to staged manifest", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-stage-"));
+    roots.push(root);
+    const source = join(root, "candidate");
+    const runId = "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3";
+    await import("node:fs/promises").then(({ mkdir }) => mkdir(source, { recursive: true }));
+    writeFileSync(join(source, "summary.md"), "resultado sintético\n");
+    const candidate = await buildPublicationCandidate({ candidateId: "candidate-synthetic", root: source, allowedPaths: ["summary.md"] });
+    const approval = approveCandidate({ candidateId: candidate.candidateId, packageHash: candidate.packageHash, reviewer: "test", approvedAt: "2026-09-13T18:00:00.000Z" });
+
+    const staged = await stageApprovedCandidate({
+      source, publishedRoot: join(root, "published"), runId, packageHash: candidate.packageHash, approvedPackageHash: approval.approvedPackageHash, includedPaths: candidate.includedPaths,
+      publication: { schemaVersion: "1.0.0", runId, publishedAt: "2026-09-13T18:00:00.000Z", official: true, sourceInputs: { visibility: "public", redistributable: true }, summary: { es: "Resultado sintético", en: "Synthetic result" }, includedPaths: candidate.includedPaths, evidencePaths: [], demo: null, packageHash: candidate.packageHash },
+    });
+
+    expect(JSON.parse(readFileSync(join(staged.path, "publication.json"), "utf8"))).toMatchObject({ runId, packageHash: candidate.packageHash });
+  });
+
   test("stages only an approved immutable package under its run identifier", async () => {
     const root = mkdtempSync(join(tmpdir(), "aibench-stage-"));
     roots.push(root);
