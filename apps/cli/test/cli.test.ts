@@ -23,6 +23,11 @@ describe("aibench list", () => {
 });
 
 describe("aibench plan", () => {
+  test("requires a benchmark and system selection before creating an official plan", async () => {
+    const result = await runCli(["plan", "--confirm"], { plan: () => "never" });
+    expect(result).toEqual({ exitCode: 2, output: "plan: --benchmark and --system are required\n" });
+  });
+
   test("requires explicit confirmation for an official plan", async () => {
     const result = await runCli(["plan", "--benchmark", "smoke-benchmark", "--system", "fake"], { plan: () => "plan-1" });
     expect(result).toEqual({ exitCode: 2, output: "plan: --confirm is required for an official plan\n" });
@@ -35,6 +40,11 @@ describe("aibench plan", () => {
 });
 
 describe("aibench run and status", () => {
+  test("requires a persisted plan identifier before a run can start", async () => {
+    const result = await runCli(["run", "--adapter", "fake"], { run: () => "never" });
+    expect(result).toEqual({ exitCode: 2, output: "run: --plan is required\n" });
+  });
+
   test("only runs the fake adapter without an additional real-adapter confirmation", async () => {
     const result = await runCli(["run", "--plan", "plan-1", "--adapter", "fake", "--json"], { run: () => "run-1" });
     expect(result).toEqual({ exitCode: 0, output: '{"runId":"run-1"}\n' });

@@ -8,6 +8,7 @@ const requiredMount = "/Volumes/MacOS_VMs";
 export type BenchPaths = {
   repoRoot: string;
   dataRoot: string;
+  plansRoot: string;
   runsRoot: string;
   workspaceRoot: string;
   cacheRoot: string;
@@ -68,6 +69,7 @@ export function resolveBenchPaths(
   return {
     repoRoot: join(configuredHome, "platform"),
     dataRoot,
+    plansRoot: join(dataRoot, "plans"),
     runsRoot: join(dataRoot, "runs"),
     workspaceRoot: join(dataRoot, "workspaces"),
     cacheRoot: join(dataRoot, "cache"),

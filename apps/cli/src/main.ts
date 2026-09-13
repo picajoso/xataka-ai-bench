@@ -1,14 +1,37 @@
 import { mkdir, readFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { FakeAdapter } from "@aibench/adapters";
 import { loadBenchmark, resolveBenchPaths } from "@aibench/config";
-import { DockerIsolationProvider, RunStore, executeRun } from "@aibench/runner";
+import { createBatchPlan, DockerIsolationProvider, PlanStore, RunStore, executeRun } from "@aibench/runner";
 
 export type CliResult = { exitCode: number; output: string };
 export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown> };
 
-async function runFakeSmoke(): Promise<string> {
+function flagValue(flags: string[], name: string): string | undefined {
+  const index = flags.indexOf(name);
+  return index === -1 ? undefined : flags[index + 1];
+}
+
+async function createOfficialPlan(benchmarkSlug: string, systemSlug: string): Promise<string> {
+  if (benchmarkSlug !== "smoke-benchmark" || systemSlug !== "fake") {
+    throw new Error("Only the internal smoke benchmark and fake adapter are configured yet");
+  }
   const paths = resolveBenchPaths();
+  const loaded = await loadBenchmark(join(paths.repoRoot, "examples", "smoke-benchmark", "benchmark.yaml"));
+  const plan = createBatchPlan([{ slug: loaded.definition.slug, version: loaded.definition.version, hash: loaded.definitionHash }], [{
+    slug: "fake", version: "1.0.0", hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  }], { createdAt: new Date(), randomBytes, official: true, confirmedAt: new Date() });
+  await new PlanStore({ plansRoot: paths.plansRoot }).save(plan);
+  return plan.planId;
+}
+
+async function runFakeSmoke(planId: string): Promise<string> {
+  const paths = resolveBenchPaths();
+  const plan = await new PlanStore({ plansRoot: paths.plansRoot }).load(planId);
+  if (plan.runs.length !== 1 || plan.runs[0]?.benchmarkSlug !== "smoke-benchmark" || plan.runs[0]?.systemSlug !== "fake") {
+    throw new Error(`Plan ${planId} is not an executable fake smoke plan`);
+  }
   await Promise.all([mkdir(paths.runsRoot, { recursive: true }), mkdir(paths.workspaceRoot, { recursive: true }), mkdir(paths.reviewRoot, { recursive: true })]);
   const loaded = await loadBenchmark(join(paths.repoRoot, "examples", "smoke-benchmark", "benchmark.yaml"));
   const prompt = await readFile(join(loaded.directory, loaded.definition.prompts.canonical.path), "utf8");
@@ -33,14 +56,19 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ benchmarks })}\n` : `${benchmarks.join("\n")}\n` };
   }
   if (command === "plan") {
+    const benchmark = flagValue(flags, "--benchmark");
+    const system = flagValue(flags, "--system");
+    if (!benchmark || !system) return { exitCode: 2, output: "plan: --benchmark and --system are required\n" };
     if (!flags.includes("--confirm")) return { exitCode: 2, output: "plan: --confirm is required for an official plan\n" };
-    const planId = (dependencies.plan ?? (() => "plan-smoke-benchmark-fake"))();
+    const planId = await (dependencies.plan ?? (() => createOfficialPlan(benchmark, system)))();
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ planId })}\n` : `plan: ${planId}\n` };
   }
   if (command === "run") {
-    const adapter = flags[flags.indexOf("--adapter") + 1] ?? "fake";
+    const planId = flagValue(flags, "--plan");
+    if (!planId) return { exitCode: 2, output: "run: --plan is required\n" };
+    const adapter = flagValue(flags, "--adapter") ?? "fake";
     if (adapter !== "fake" && !flags.includes("--confirm")) return { exitCode: 2, output: "run: --confirm is required for a real adapter\n" };
-    const runId = await (dependencies.run ?? runFakeSmoke)();
+    const runId = await (dependencies.run ?? (() => runFakeSmoke(planId)))();
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `run: ${runId}\n` };
   }
   if (command === "status") {
