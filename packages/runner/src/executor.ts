@@ -29,11 +29,13 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
     phase = "PREFLIGHT";
     await options.store.transition(options.run.runId, phase);
     workspace = await options.isolation.prepare(options.isolationRequest);
+    const activeWorkspace = workspace;
     const context = {
       runId: options.run.runId,
       prompt: options.prompt,
-      workspaceRoot: workspace.request.workspacePath,
+      workspaceRoot: activeWorkspace.executionClass === "official-container" ? "/workspace" : activeWorkspace.request.workspacePath,
       environment: options.environment ?? {},
+      commandExecutor: (command: { executable: string; args: string[]; cwd?: string; env?: Record<string, string> }) => activeWorkspace.exec(command),
     };
     const preflight = await options.adapter.preflight(context);
     await options.store.appendEvent(options.run.runId, {

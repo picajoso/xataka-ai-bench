@@ -87,6 +87,23 @@ describe("CodexAdapter", () => {
     expect(cancelled).toBe(false);
   });
 
+  test("uses the supplied isolated command executor instead of launching on the controller", async () => {
+    const commands: unknown[] = [];
+    const adapter = new CodexAdapter({ executable: "codex", model: "gpt-5.6-sol", launcher: () => { throw new Error("controller launch is unsafe"); } });
+    const events = [];
+    for await (const event of adapter.start({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      commandExecutor: async function* (command) {
+        commands.push(command);
+        yield { type: "stdout", data: '{"type":"turn.completed","exit_code":0}\n' };
+        yield { type: "exit", exitCode: 0 };
+      },
+    })) events.push(event);
+
+    expect(commands).toEqual([{ executable: "codex", args: ["exec", "--json", "--cd", "/workspace", "--skip-git-repo-check", "--ephemeral", "--model", "gpt-5.6-sol", "test"] }]);
+    expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success" });
+  });
+
   test("cancels the active owned process", async () => {
     let release: (() => void) | undefined;
     let cancelled = false;

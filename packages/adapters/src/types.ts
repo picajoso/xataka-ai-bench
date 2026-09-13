@@ -54,6 +54,9 @@ export type AdapterContext = {
   prompt: string;
   workspaceRoot: string;
   environment: Readonly<Record<string, string>>;
+  commandExecutor?: (command: { executable: string; args: string[]; cwd?: string; env?: Record<string, string> }) => AsyncIterable<
+    { type: "stdout" | "stderr"; data: string } | { type: "exit"; exitCode: number | null }
+  >;
   rawEventSink?: (event: unknown) => Promise<void>;
 };
 

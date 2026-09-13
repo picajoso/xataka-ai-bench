@@ -75,6 +75,13 @@ function defaultLauncher(command: { executable: string; args: string[] }): OpenC
   };
 }
 
+async function* isolatedOutput(context: AdapterContext, command: { executable: string; args: string[] }): AsyncIterable<OpenCodeOutput> {
+  if (!context.commandExecutor) return;
+  for await (const event of context.commandExecutor(command)) {
+    if (event.type === "stdout" || event.type === "stderr") yield { stream: event.type, data: event.data };
+  }
+}
+
 export class OpenCodeAdapter implements AgentAdapter {
   readonly name = "opencode";
   readonly #options: OpenCodeAdapterOptions;
@@ -95,11 +102,11 @@ export class OpenCodeAdapter implements AgentAdapter {
   async *start(context: AdapterContext): AsyncIterable<AdapterEvent> {
     if (this.#active) throw new Error("OpenCode adapter is already running");
     const command = buildOpenCodeCommand({ executable: this.#options.executable, workspaceRoot: context.workspaceRoot, prompt: context.prompt, model: this.#options.model, ...(this.#options.variant ? { variant: this.#options.variant } : {}) });
-    const launch = (this.#options.launcher ?? defaultLauncher)(command);
+    const launch = context.commandExecutor ? undefined : (this.#options.launcher ?? defaultLauncher)(command);
     this.#active = launch;
     const clock = this.#options.clock ?? (() => new Date());
     try {
-      for await (const chunk of launch.output()) {
+      for await (const chunk of context.commandExecutor ? isolatedOutput(context, command) : launch!.output()) {
         await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
         const timestamp = clock().toISOString();
         if (chunk.stream === "stderr") {

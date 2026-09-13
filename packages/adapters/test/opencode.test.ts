@@ -37,4 +37,21 @@ describe("OpenCodeAdapter", () => {
     expect(events.map((event) => event.type)).toEqual(["session.started", "session.finished"]);
     expect(raw).toHaveLength(2);
   });
+
+  test("uses the supplied isolated command executor instead of launching on the controller", async () => {
+    const commands: unknown[] = [];
+    const adapter = new OpenCodeAdapter({ executable: "opencode", model: "ninfer/qwen3.8-27b", launcher: () => { throw new Error("controller launch is unsafe"); } });
+    const events = [];
+    for await (const event of adapter.start({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      commandExecutor: async function* (command) {
+        commands.push(command);
+        yield { type: "stdout", data: '{"type":"session.status","properties":{"status":{"type":"idle"}}}\n' };
+        yield { type: "exit", exitCode: 0 };
+      },
+    })) events.push(event);
+
+    expect(commands).toEqual([{ executable: "opencode", args: ["run", "--format", "json", "--dir", "/workspace", "--model", "ninfer/qwen3.8-27b", "test"] }]);
+    expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success" });
+  });
 });

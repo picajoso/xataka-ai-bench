@@ -9,7 +9,10 @@ import {
   executeRun,
   type CreateRunPlan,
   type IsolationRequest,
+  type IsolationProvider,
+  type IsolatedWorkspace,
 } from "../src/index.js";
+import type { AgentAdapter } from "@aibench/adapters";
 
 const temporaryDirectories: string[] = [];
 
@@ -60,6 +63,38 @@ function isolationRequest(root: string, runId: string): IsolationRequest {
 }
 
 describe("executeRun", () => {
+  test("gives adapters a container workspace and an isolated command executor", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
+    let receivedWorkspace = "";
+    let commandExecutorAvailable = false;
+    const adapter: AgentAdapter = {
+      name: "inspection",
+      async preflight() { return { ok: true, adapter: "inspection", version: "1", diagnostics: [] }; },
+      async *start(context) {
+        receivedWorkspace = context.workspaceRoot;
+        commandExecutorAvailable = typeof context.commandExecutor === "function";
+        yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "success", exitCode: 0 };
+      },
+      async cancel() {},
+    };
+    const isolation: IsolationProvider = {
+      async prepare(request) {
+        return {
+          request, executionClass: "official-container" as const,
+          commandFor: () => [],
+          async *exec() { yield { type: "exit" as const, exitCode: 0 }; },
+          async dispose() {},
+        } satisfies IsolatedWorkspace;
+      },
+    };
+
+    await executeRun({ store, run, prompt: "Build.", timeoutMs: 100, adapter, isolation, isolationRequest: isolationRequest(root, run.runId) });
+
+    expect(receivedWorkspace).toBe("/workspace");
+    expect(commandExecutorAvailable).toBe(true);
+  });
+
   test("records a successful agent session as ready for review", async () => {
     const { root, store } = setup();
     const run = await store.createRun(plan);

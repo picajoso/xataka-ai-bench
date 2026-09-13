@@ -134,6 +134,13 @@ function defaultLauncher(command: ProcessCommand): CodexLaunch {
   };
 }
 
+async function* isolatedOutput(context: AdapterContext, command: ProcessCommand): AsyncIterable<CodexOutput> {
+  if (!context.commandExecutor) return;
+  for await (const event of context.commandExecutor(command)) {
+    if (event.type === "stdout" || event.type === "stderr") yield { stream: event.type, data: event.data };
+  }
+}
+
 export class CodexAdapter implements AgentAdapter {
   readonly name = "codex";
   readonly #options: CodexAdapterOptions;
@@ -163,11 +170,11 @@ export class CodexAdapter implements AgentAdapter {
       prompt: context.prompt,
       ...(this.#options.model ? { model: this.#options.model } : {}),
     });
-    const launch = (this.#options.launcher ?? defaultLauncher)(command);
+    const launch = context.commandExecutor ? undefined : (this.#options.launcher ?? defaultLauncher)(command);
     this.#active = launch;
     const clock = this.#options.clock ?? (() => new Date());
     try {
-      for await (const chunk of launch.output()) {
+      for await (const chunk of context.commandExecutor ? isolatedOutput(context, command) : launch!.output()) {
         await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
         const timestamp = clock().toISOString();
         if (chunk.stream === "stderr") {
