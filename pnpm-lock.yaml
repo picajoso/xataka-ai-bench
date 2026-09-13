@@ -78,6 +78,9 @@ importers:
 
   packages/evaluation:
     dependencies:
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@aibench/runner':
         specifier: workspace:*
         version: link:../runner
