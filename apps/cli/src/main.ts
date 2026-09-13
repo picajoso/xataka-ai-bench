@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { FakeAdapter } from "@aibench/adapters";
-import { loadBenchmark, resolveBenchPaths } from "@aibench/config";
+import { loadBenchmark, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, PlanStore, RunStore, executeRun } from "@aibench/runner";
 
 export type CliResult = { exitCode: number; output: string };
@@ -14,13 +14,16 @@ function flagValue(flags: string[], name: string): string | undefined {
 }
 
 async function createOfficialPlan(benchmarkSlug: string, systemSlug: string): Promise<string> {
-  if (benchmarkSlug !== "smoke-benchmark" || systemSlug !== "fake") {
-    throw new Error("Only the internal smoke benchmark and fake adapter are configured yet");
-  }
   const paths = resolveBenchPaths();
-  const loaded = await loadBenchmark(join(paths.repoRoot, "examples", "smoke-benchmark", "benchmark.yaml"));
+  const benchmarkPath = benchmarkSlug === "smoke-benchmark"
+    ? join(paths.repoRoot, "examples", "smoke-benchmark", "benchmark.yaml")
+    : join(paths.repoRoot, "benchmarks", benchmarkSlug, "benchmark.yaml");
+  const loaded = await loadBenchmark(benchmarkPath);
+  const system = systemSlug === "fake"
+    ? { slug: "fake", version: "1.0.0", profileHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    : await loadSystemProfile(join(paths.repoRoot, "systems", systemSlug, "system.yaml")).then((entry) => ({ slug: entry.profile.slug, version: entry.profile.version, profileHash: entry.profileHash }));
   const plan = createBatchPlan([{ slug: loaded.definition.slug, version: loaded.definition.version, hash: loaded.definitionHash }], [{
-    slug: "fake", version: "1.0.0", hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    slug: system.slug, version: system.version, hash: system.profileHash,
   }], { createdAt: new Date(), randomBytes, official: true, confirmedAt: new Date() });
   await new PlanStore({ plansRoot: paths.plansRoot }).save(plan);
   return plan.planId;
