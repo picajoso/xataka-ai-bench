@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { stringify } from "yaml";
 import { afterEach, describe, expect, test } from "vitest";
 import { hashDirectory, hashFile } from "../../contracts/src/hash.js";
-import { loadBenchmark, loadSystemProfile } from "../src/catalog.js";
+import { loadBenchmark, loadExecutionProfiles, loadSystemProfile } from "../src/catalog.js";
 import { parseStorageIdentity, resolveBenchPaths } from "../src/paths.js";
 
 const temporaryDirectories: string[] = [];
@@ -214,5 +214,17 @@ describe("benchmark catalog", () => {
     const loaded = await loadSystemProfile(resolve(repositoryRoot, "systems/opencode-qwen38-ninfer-medium/system.yaml"));
     expect(loaded.profile.slug).toBe("opencode-qwen38-ninfer-medium");
     expect(loaded.profileHash).toMatch(/^sha256:/);
+  });
+
+  test("loads private execution bindings without accepting secret values", async () => {
+    const root = temporaryDirectory();
+    const path = join(root, "execution-profiles.yaml");
+    writeFileSync(path, stringify({
+      schemaVersion: "1.0.0",
+      profiles: [{ systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"] }],
+    }));
+    await expect(loadExecutionProfiles(path)).resolves.toEqual([{
+      systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"],
+    }]);
   });
 });

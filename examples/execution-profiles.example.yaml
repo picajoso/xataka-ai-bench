@@ -1,0 +1,10 @@
+# Copy this file to /Volumes/MacOS_VMs/xataka-ai-bench/state/execution-profiles.yaml.
+# It contains identifiers and permitted variable names only: never put key values here.
+schemaVersion: 1.0.0
+profiles:
+  - systemSlug: opencode-qwen38-ninfer-medium
+    adapter: opencode
+    model: replace-with-your-opencode-provider/model
+    variant: medium
+    environmentVariables:
+      - NINFER_API_KEY

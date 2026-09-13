@@ -2,6 +2,22 @@ import { readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { hashFile, parseBenchmark, parseSystemProfile, type BenchmarkDefinition, type SystemProfile } from "@aibench/contracts";
 import { parse } from "yaml";
+import { z } from "zod";
+
+const ExecutionProfileSchema = z.object({
+  systemSlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  adapter: z.enum(["opencode", "codex"]),
+  model: z.string().min(1).refine((value) => !/(?:sk-|api[_-]?key|token|secret|password)/i.test(value), "model must not contain a secret"),
+  variant: z.string().min(1).nullable(),
+  environmentVariables: z.array(z.string().regex(/^[A-Z][A-Z0-9_]*$/)),
+}).strict();
+
+const ExecutionProfilesFileSchema = z.object({
+  schemaVersion: z.literal("1.0.0"),
+  profiles: z.array(ExecutionProfileSchema),
+}).strict();
+
+export type ExecutionProfile = z.infer<typeof ExecutionProfileSchema>;
 
 export type LoadedBenchmark = {
   definition: BenchmarkDefinition;
@@ -73,4 +89,8 @@ export async function loadSystemProfile(profilePath: string): Promise<LoadedSyst
     profile: parseSystemProfile(parse(await readFile(physicalPath, "utf8"))),
     profileHash: await hashFile(physicalPath),
   };
+}
+
+export async function loadExecutionProfiles(profilePath: string): Promise<ExecutionProfile[]> {
+  return ExecutionProfilesFileSchema.parse(parse(await readFile(profilePath, "utf8"))).profiles;
 }
