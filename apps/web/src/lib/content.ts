@@ -29,3 +29,7 @@ export async function loadPublicCatalog(publishedRoot: string): Promise<PublicCa
   }));
   return { runs: runs.sort((left, right) => left.runId.localeCompare(right.runId)) };
 }
+
+export async function getPublicRun(publishedRoot: string, runId: string): Promise<PublicationManifest | null> {
+  return (await loadPublicCatalog(publishedRoot)).runs.find((run) => run.runId === runId) ?? null;
+}
