@@ -67,6 +67,21 @@ describe("Docker isolation contract", () => {
     expect(workspace.commandFor({ executable: "agent", args: [] })).toContain("aibench-package-registry");
   });
 
+  test("passes only credential names to Docker and never their values", async () => {
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
+    const workspace = await isolation.prepare(request());
+
+    const command = workspace.commandFor({
+      executable: "agent",
+      args: ["run"],
+      env: { NINFER_API_KEY: "secret-value-must-not-appear" },
+    });
+
+    expect(command).toContain("--env");
+    expect(command).toContain("NINFER_API_KEY");
+    expect(command.join(" ")).not.toContain("secret-value-must-not-appear");
+  });
+
   test("rejects paths outside the benchmark storage root", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
 

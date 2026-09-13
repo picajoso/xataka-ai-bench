@@ -95,6 +95,45 @@ describe("executeRun", () => {
     expect(commandExecutorAvailable).toBe(true);
   });
 
+  test("makes the approved execution environment available only to isolated commands", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
+    let receivedEnvironment: Record<string, string> | undefined;
+    const adapter: AgentAdapter = {
+      name: "inspection",
+      async preflight() { return { ok: true, adapter: "inspection", version: "1", diagnostics: [] }; },
+      async *start(context) {
+        for await (const _event of context.commandExecutor!({ executable: "agent", args: ["run"] })) {
+          // Exercise the isolated command stream before ending the synthetic session.
+          void _event;
+        }
+        yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "success", exitCode: 0 };
+      },
+      async cancel() {},
+    };
+    const isolation: IsolationProvider = {
+      async prepare(request) {
+        return {
+          request, executionClass: "official-container" as const,
+          commandFor: () => [],
+          async *exec(command) {
+            receivedEnvironment = command.env;
+            yield { type: "exit" as const, exitCode: 0 };
+          },
+          async dispose() {},
+        } satisfies IsolatedWorkspace;
+      },
+    };
+
+    await executeRun({
+      store, run, prompt: "Build.", timeoutMs: 100, adapter, isolation,
+      isolationRequest: isolationRequest(root, run.runId),
+      environment: { NINFER_API_KEY: "test-secret" },
+    });
+
+    expect(receivedEnvironment).toEqual({ NINFER_API_KEY: "test-secret" });
+  });
+
   test("records a successful agent session as ready for review", async () => {
     const { root, store } = setup();
     const run = await store.createRun(plan);

@@ -35,7 +35,10 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
       prompt: options.prompt,
       workspaceRoot: activeWorkspace.executionClass === "official-container" ? "/workspace" : activeWorkspace.request.workspacePath,
       environment: options.environment ?? {},
-      commandExecutor: (command: { executable: string; args: string[]; cwd?: string; env?: Record<string, string> }) => activeWorkspace.exec(command),
+      commandExecutor: (command: { executable: string; args: string[]; cwd?: string; env?: Record<string, string> }) => activeWorkspace.exec({
+        ...command,
+        env: { ...(options.environment ?? {}), ...(command.env ?? {}) },
+      }),
     };
     const preflight = await options.adapter.preflight(context);
     await options.store.appendEvent(options.run.runId, {

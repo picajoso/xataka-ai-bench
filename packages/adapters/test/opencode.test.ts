@@ -21,6 +21,23 @@ describe("OpenCode command construction", () => {
 });
 
 describe("OpenCodeAdapter", () => {
+  test("preflights through the isolated command executor when one is supplied", async () => {
+    const commands: unknown[] = [];
+    const adapter = new OpenCodeAdapter({ executable: "opencode", model: "ninfer/qwen3.8-27b" });
+
+    const report = await adapter.preflight({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      commandExecutor: async function* (command) {
+        commands.push(command);
+        yield { type: "stdout", data: "1.18.30\n" };
+        yield { type: "exit", exitCode: 0 };
+      },
+    });
+
+    expect(commands).toEqual([{ executable: "opencode", args: ["--version"] }]);
+    expect(report).toEqual({ ok: true, adapter: "opencode", version: "1.18.30", diagnostics: [] });
+  });
+
   test("preflights locally and normalizes private streamed JSON", async () => {
     const raw: unknown[] = [];
     const launch: OpenCodeLaunch = {

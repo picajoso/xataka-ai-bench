@@ -45,6 +45,23 @@ describe("Codex command construction", () => {
 });
 
 describe("CodexAdapter", () => {
+  test("preflights through the isolated command executor when one is supplied", async () => {
+    const commands: unknown[] = [];
+    const adapter = new CodexAdapter({ executable: "codex" });
+
+    const report = await adapter.preflight({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      commandExecutor: async function* (command) {
+        commands.push(command);
+        yield { type: "stdout", data: "codex-cli 0.154.0\n" };
+        yield { type: "exit", exitCode: 0 };
+      },
+    });
+
+    expect(commands).toEqual([{ executable: "codex", args: ["--version"] }]);
+    expect(report).toEqual({ ok: true, adapter: "codex", version: "codex-cli 0.154.0", diagnostics: [] });
+  });
+
   test("records the installed CLI version without running a model", async () => {
     const adapter = new CodexAdapter({
       executable: "codex",

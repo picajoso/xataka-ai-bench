@@ -51,6 +51,7 @@ class DockerWorkspace implements IsolatedWorkspace {
 
   commandFor(command: ProcessCommand): string[] {
     this.#assertActive();
+    const passedEnvironment = Object.keys(command.env ?? {}).sort().flatMap((name) => ["--env", name]);
     return [
       this.#dockerExecutable, "run", "--rm", "--read-only",
       "--user", "10001:10001",
@@ -62,6 +63,7 @@ class DockerWorkspace implements IsolatedWorkspace {
       "--mount", `type=bind,src=${this.request.workspacePath},dst=/workspace`,
       "--mount", `type=bind,src=${this.request.outputPath},dst=/output`,
       "--workdir", "/workspace",
+      ...passedEnvironment,
       this.#image,
       command.executable,
       ...command.args,

@@ -75,6 +75,20 @@ function defaultLauncher(command: { executable: string; args: string[] }): OpenC
   };
 }
 
+async function isolatedVersion(context: AdapterContext, executable: string): Promise<string> {
+  if (!context.commandExecutor) throw new Error("An isolated command executor is required");
+  let output = "";
+  let exitCode: number | null | undefined;
+  for await (const event of context.commandExecutor({ executable, args: ["--version"] })) {
+    if (event.type === "stdout") output += event.data;
+    if (event.type === "exit") exitCode = event.exitCode;
+  }
+  if (exitCode !== 0) throw new Error("OpenCode version check failed in the isolated environment");
+  const version = output.trim();
+  if (!version) throw new Error("OpenCode version check produced no output");
+  return version;
+}
+
 async function* isolatedOutput(context: AdapterContext, command: { executable: string; args: string[] }): AsyncIterable<OpenCodeOutput> {
   if (!context.commandExecutor) return;
   for await (const event of context.commandExecutor(command)) {
@@ -90,9 +104,12 @@ export class OpenCodeAdapter implements AgentAdapter {
   constructor(options: OpenCodeAdapterOptions) { this.#options = options; }
 
   async preflight(context: AdapterContext): Promise<PreflightReport> {
-    void context;
     try {
-      const version = this.#options.versionReader ? await this.#options.versionReader() : (await execFileAsync(this.#options.executable, ["--version"])).stdout.trim();
+      const version = context.commandExecutor
+        ? await isolatedVersion(context, this.#options.executable)
+        : this.#options.versionReader
+          ? await this.#options.versionReader()
+          : (await execFileAsync(this.#options.executable, ["--version"])).stdout.trim();
       return { ok: true, adapter: this.name, version, diagnostics: [] };
     } catch (error) {
       return { ok: false, adapter: this.name, version: "unavailable", diagnostics: [redact(error instanceof Error ? error.message : "OpenCode version check failed")] };
