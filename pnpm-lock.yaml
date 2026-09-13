@@ -73,7 +73,11 @@ importers:
         specifier: ^2.0.0
         version: 2.9.0
 
-  packages/evaluation: {}
+  packages/evaluation:
+    dependencies:
+      '@aibench/runner':
+        specifier: workspace:*
+        version: link:../runner
 
   packages/runner:
     dependencies:

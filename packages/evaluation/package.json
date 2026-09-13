@@ -6,5 +6,8 @@
   "scripts": {
     "test": "vitest run --root ../.. packages/evaluation/test",
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  },
+  "dependencies": {
+    "@aibench/runner": "workspace:*"
   }
 }
