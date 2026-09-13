@@ -85,6 +85,7 @@ describe("core contracts", () => {
       "opencode-qwen38-ninfer-off",
       "opencode-qwen38-ninfer-medium",
       "opencode-glm53-oxalpha",
+      "codex-gpt56-sol-agentrouter",
     ]) {
       const profile = parse(readFileSync(resolve(repositoryRoot, `systems/${slug}/system.yaml`), "utf8"));
       expect(parseSystemProfile(profile).slug).toBe(slug);

@@ -1,0 +1,15 @@
+schemaVersion: 1.0.0
+source: qwen-vs-codex-tests
+folderProfiles:
+  codex: codex-gpt56-sol-agentrouter
+  oxalpha: opencode-glm53-oxalpha
+  qwen: opencode-qwen38-lmstudio-max
+  qwen2: opencode-qwen38-ninfer-off
+  qwen3-medium: opencode-qwen38-ninfer-medium
+knownExceptions:
+  - test: 08-broken-app/qwen
+    status: empty
+  - test: 09-existing-codebase
+    status: absent
+  - test: 10-screenshot-clone/codex
+    status: reference-only

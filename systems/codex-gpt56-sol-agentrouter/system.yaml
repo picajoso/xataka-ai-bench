@@ -1,0 +1,32 @@
+schemaVersion: 1.0.0
+slug: codex-gpt56-sol-agentrouter
+version: 1.0.0
+displayName: Codex + GPT-5.6-Sol (AgentRouter)
+model:
+  provider: OpenAI
+  name: GPT-5.6-Sol
+  version: null
+agent:
+  name: Codex
+  version: unrecorded
+  executable: codex
+backend:
+  kind: cloud
+  provider: AgentRouter
+  name: GPT-5.6-Sol API route
+  endpointDescription: Private AgentRouter configuration on the controller
+hardware:
+  controller: Mac mini M4
+  inference: null
+software:
+  os: macOS
+  versions: {}
+inference:
+  reasoning: unknown
+  quantization: null
+  parameters: {}
+permissions:
+  networkPolicy: package-registries
+  tools: [shell]
+credentials:
+  environmentVariables: []
