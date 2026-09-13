@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, relative, resolve } from "node:path";
 import { findLocalPaths } from "./paths.js";
-import { findApiKeys, findBearerSecrets } from "./secrets.js";
+import { findApiKeys, findBearerSecrets } from "./patterns.js";
 import type { ScanFinding, ScanReport } from "./types.js";
 
 const maximumTextBytes = 1024 * 1024;

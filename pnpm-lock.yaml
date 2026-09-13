@@ -89,7 +89,11 @@ importers:
         specifier: ^1.63.0
         version: 1.63.0
 
-  packages/publisher: {}
+  packages/publisher:
+    dependencies:
+      '@aibench/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/runner:
     dependencies:
