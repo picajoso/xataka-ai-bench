@@ -55,6 +55,14 @@ describe("aibench run and status", () => {
     expect(result).toEqual({ exitCode: 2, output: "run: --confirm is required for a real adapter\n" });
   });
 
+  test("refuses a confirmed real adapter until its execution profile is configured", async () => {
+    const result = await runCli(["run", "--plan", "plan-1", "--adapter", "opencode", "--confirm"], {
+      run: () => { throw new Error("a real adapter must not fall back to the smoke runner"); },
+    });
+
+    expect(result).toEqual({ exitCode: 2, output: "run: real adapter execution is not configured yet\n" });
+  });
+
   test("reads an immutable run status", async () => {
     const result = await runCli(["status", "run-1", "--json"], { status: (runId) => ({ runId, status: "READY_FOR_REVIEW" }) });
     expect(result).toEqual({ exitCode: 0, output: '{"runId":"run-1","status":"READY_FOR_REVIEW"}\n' });

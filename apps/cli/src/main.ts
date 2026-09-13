@@ -71,6 +71,7 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
     if (!planId) return { exitCode: 2, output: "run: --plan is required\n" };
     const adapter = flagValue(flags, "--adapter") ?? "fake";
     if (adapter !== "fake" && !flags.includes("--confirm")) return { exitCode: 2, output: "run: --confirm is required for a real adapter\n" };
+    if (adapter !== "fake") return { exitCode: 2, output: "run: real adapter execution is not configured yet\n" };
     const runId = await (dependencies.run ?? (() => runFakeSmoke(planId)))();
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `run: ${runId}\n` };
   }
