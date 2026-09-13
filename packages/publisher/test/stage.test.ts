@@ -21,15 +21,21 @@ describe("publication staging", () => {
     const staged = await stageApprovedCandidate({
       source,
       publishedRoot: published,
-      runId: "20260913T180000000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3",
+      runId: "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3",
       packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       approvedPackageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       includedPaths: ["summary.md"],
+      publication: {
+        schemaVersion: "1.0.0", runId: "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3", publishedAt: "2026-09-13T18:00:00.000Z", official: true,
+        sourceInputs: { visibility: "public", redistributable: true }, summary: { es: "Resultado sintético", en: "Synthetic result" },
+        includedPaths: ["summary.md"], evidencePaths: [], demo: null, packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      },
     });
 
-    expect(staged.path).toBe(join(published, "runs", "20260913T180000000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3"));
+    expect(staged.path).toBe(join(published, "runs", "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3"));
     expect(readFileSync(join(staged.path, "summary.md"), "utf8")).toBe("public summary\n");
     expect(existsSync(join(staged.path, "raw.jsonl"))).toBe(false);
+    expect(JSON.parse(readFileSync(join(staged.path, "publication.json"), "utf8"))).toMatchObject({ runId: "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3" });
   });
 
   test("refuses a changed or duplicate package", async () => {
@@ -38,7 +44,7 @@ describe("publication staging", () => {
     await expect(stageApprovedCandidate({
       source: root, publishedRoot: join(root, "published"), runId: "20260913T180000000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3",
       packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      approvedPackageHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", includedPaths: [],
+      approvedPackageHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", includedPaths: [], publication: {} as never,
     })).rejects.toThrow(/digest/i);
   });
 });

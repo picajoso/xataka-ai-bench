@@ -1,5 +1,6 @@
-import { access, copyFile, mkdir, rename } from "node:fs/promises";
+import { access, copyFile, mkdir, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { parsePublicationManifest, type PublicationManifest } from "@aibench/contracts";
 
 export type StageApprovedCandidateInput = {
   source: string;
@@ -8,6 +9,7 @@ export type StageApprovedCandidateInput = {
   packageHash: string;
   approvedPackageHash: string;
   includedPaths: string[];
+  publication: PublicationManifest;
 };
 
 export type StagedPublication = { path: string; includedPaths: string[] };
@@ -21,6 +23,8 @@ function sourcePath(root: string, path: string): string {
 
 export async function stageApprovedCandidate(input: StageApprovedCandidateInput): Promise<StagedPublication> {
   if (input.packageHash !== input.approvedPackageHash) throw new Error("Approved package digest no longer matches the candidate");
+  const publication = parsePublicationManifest(input.publication);
+  if (publication.runId !== input.runId || publication.packageHash !== input.packageHash) throw new Error("Publication manifest does not match the approved package");
   const source = resolve(input.source);
   const destination = join(resolve(input.publishedRoot), "runs", input.runId);
   try {
@@ -38,6 +42,7 @@ export async function stageApprovedCandidate(input: StageApprovedCandidateInput)
     await mkdir(resolve(target, ".."), { recursive: true });
     await copyFile(sourcePath(source, path), target);
   }
+  await writeFile(join(temporary, "publication.json"), `${JSON.stringify(publication, null, 2)}\n`, { flag: "wx" });
   await rename(temporary, destination);
   return { path: destination, includedPaths };
 }
