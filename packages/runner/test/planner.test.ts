@@ -1,8 +1,8 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { createBatchPlan, withGlobalRunLock } from "../src/index.js";
+import { createBatchPlan, PlanStore, withGlobalRunLock } from "../src/index.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -42,6 +42,26 @@ describe("batch planning", () => {
       randomBytes: () => Buffer.from("a1b2c3", "hex"),
       official: true,
     })).toThrow(/confirmation/i);
+  });
+});
+
+describe("plan storage", () => {
+  test("persists a confirmed plan once and reloads its immutable selection", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "aibench-plans-"));
+    temporaryDirectories.push(directory);
+    const plan = createBatchPlan(benchmarks, systems, {
+      createdAt: new Date("2026-09-13T12:00:00.000Z"),
+      randomBytes: () => Buffer.from("a1b2c3", "hex"),
+      official: true,
+      confirmedAt: new Date("2026-09-13T12:00:01.000Z"),
+    });
+    const store = new PlanStore({ plansRoot: directory });
+
+    await store.save(plan);
+
+    expect(await store.load(plan.planId)).toEqual(plan);
+    expect(JSON.parse(readFileSync(join(directory, `${plan.planId}.json`), "utf8"))).toEqual(plan);
+    await expect(store.save(plan)).rejects.toThrow("already exists");
   });
 });
 

@@ -5,5 +5,6 @@ export * from "./isolation/native.js";
 export * from "./isolation/types.js";
 export * from "./lock.js";
 export * from "./planner.js";
+export * from "./plan-store.js";
 export * from "./run-store.js";
 export * from "./state-machine.js";
