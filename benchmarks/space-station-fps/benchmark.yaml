@@ -1,0 +1,31 @@
+schemaVersion: 1.0.0
+slug: space-station-fps
+version: 1.0.0
+state: draft
+category: browser-game
+title:
+  es: Estación espacial en primera persona
+  en: First-person space station
+prompts:
+  canonical:
+    locale: es
+    path: prompt.es.md
+    sha256: sha256:17beb5b025e28c3b4b02d9ba1598232ad4eff874ebf7ee2ba12abc9a4132dad6
+  translations: []
+network:
+  policy: package-registries-and-local-endpoint
+  allowedHosts: []
+limits:
+  firstShotSeconds: 1800
+  repairSeconds: 900
+evaluation:
+  type: exhibitive
+  validators: []
+inputs:
+  visibility: public
+  redistributable: true
+  fixtures: []
+capture:
+  mode: desktop
+publication:
+  eligible: true

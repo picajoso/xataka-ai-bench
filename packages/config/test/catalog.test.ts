@@ -196,4 +196,16 @@ describe("benchmark catalog", () => {
     expect(loaded.definition.inputs.visibility).toBe("private");
     expect(loaded.definition.publication.eligible).toBe(false);
   });
+
+  test("loads the first formal public browser benchmark", async () => {
+    const repositoryRoot = resolve(import.meta.dirname, "../../..");
+    const loaded = await loadBenchmark(resolve(repositoryRoot, "benchmarks/space-station-fps/benchmark.yaml"));
+    expect(loaded.definition).toMatchObject({
+      slug: "space-station-fps",
+      state: "draft",
+      evaluation: { type: "exhibitive" },
+      capture: { mode: "desktop" },
+      publication: { eligible: true },
+    });
+  });
 });
