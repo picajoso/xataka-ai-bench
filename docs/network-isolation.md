@@ -11,6 +11,8 @@ host y puerto privados configurados para ese alias. Todos los proxies y la red
 interna se eliminan al finalizar el run. La política `blocked` mantiene
 `--network none` y no crea esos recursos.
 
+Una política `package-registries` no puede salir directamente a npm desde la red interna: requiere que se declare un mirror o registry privado como destino permitido (por ejemplo, Verdaccio en la LAN).
+
 ## Configuración privada
 
 Copiar `examples/execution-profiles.example.yaml` a

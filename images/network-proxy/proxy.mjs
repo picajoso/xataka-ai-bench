@@ -2,7 +2,7 @@
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 
-export const proxyVersion = "1.0.0";
+export const proxyVersion = "1.0.1";
 
 export function parseProxyConfiguration(environment) {
   const extraDestinationKeys = Object.keys(environment).filter((key) => key.startsWith("AIBENCH_PROXY_DESTINATION_") && ![
@@ -26,10 +26,30 @@ export async function startProxy(configuration, options = {}) {
   const listenHost = options.listenHost ?? "0.0.0.0";
   const server = net.createServer((incoming) => {
     const outgoing = net.createConnection({ host: configuration.host, port: configuration.port });
-    incoming.pipe(outgoing);
-    outgoing.pipe(incoming);
+    let destinationConnected = false;
+    let probeRequested = false;
+    outgoing.once("connect", () => {
+      destinationConnected = true;
+      if (probeRequested) {
+        incoming.end("AIBENCH-OK\n");
+        outgoing.destroy();
+      }
+    });
     outgoing.once("error", () => incoming.destroy());
     incoming.once("error", () => outgoing.destroy());
+    incoming.once("data", (firstChunk) => {
+      if (firstChunk.toString() === "AIBENCH-PROBE\n") {
+        probeRequested = true;
+        if (destinationConnected) {
+          incoming.end("AIBENCH-OK\n");
+          outgoing.destroy();
+        }
+        return;
+      }
+      outgoing.write(firstChunk);
+      incoming.pipe(outgoing);
+      outgoing.pipe(incoming);
+    });
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);

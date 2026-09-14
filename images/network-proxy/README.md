@@ -8,7 +8,7 @@ deben aparecer en comandos, logs ni Git.
 Construcción local, tras verificar el código:
 
 ```sh
-docker build --tag aibench/network-proxy:1.0.0 images/network-proxy
+docker build --tag aibench/network-proxy:1.0.1 images/network-proxy
 ```
 
 El proceso solo comunica su versión y estado de escucha. Nunca registra el

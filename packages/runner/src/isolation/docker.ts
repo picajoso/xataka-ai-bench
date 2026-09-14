@@ -20,7 +20,7 @@ export class DockerIsolationProvider implements IsolationProvider {
     this.#image = options.image;
     this.#dockerExecutable = options.dockerExecutable ?? "docker";
     this.#networkProvisioner = options.networkProvisioner ?? new DockerNetworkProvisioner({
-      proxyImage: options.proxyImage ?? "aibench/network-proxy:1.0.0",
+      proxyImage: options.proxyImage ?? "aibench/network-proxy:1.0.1",
       execute: this.#dockerCommandExecutor(),
     });
   }

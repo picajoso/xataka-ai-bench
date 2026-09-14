@@ -11,10 +11,10 @@ export type NetworkPreflightInput = {
   execute(command: ProcessCommand): AsyncIterable<ProcessEvent>;
 };
 
-function probeCommand(host: string): ProcessCommand {
+export function buildNetworkProbeCommand(host: string, port = proxyPort): ProcessCommand {
   return {
     executable: "node",
-    args: ["-e", "const net=require('node:net');const s=net.connect({host:process.argv[1],port:Number(process.argv[2])});s.setTimeout(3000);s.once('connect',()=>process.exit(0));s.once('error',()=>process.exit(1));s.once('timeout',()=>process.exit(1));", host, String(proxyPort)],
+    args: ["-e", "const net=require('node:net');let done=false;const end=c=>{if(!done){done=true;process.exit(c)}};setTimeout(()=>end(1),3100);const s=net.connect({host:process.argv[1],port:Number(process.argv[2])});s.setTimeout(3000);s.once('connect',()=>s.write('AIBENCH-PROBE\\n'));s.once('data',d=>end(d.toString()==='AIBENCH-OK\\n'?0:1));s.once('error',()=>end(1));s.once('timeout',()=>end(1));s.once('close',()=>end(1));", host, String(port)],
   };
 }
 
@@ -30,11 +30,11 @@ export async function verifyNetworkIsolation(input: NetworkPreflightInput): Prom
   if (input.policy === "blocked") return createNetworkEvidence({ policy: "blocked", proxyVersion: input.proxyVersion });
   if (input.endpoints.length === 0) throw new Error("Network preflight requires private endpoints");
   for (const endpoint of input.endpoints) {
-    if (await exitCode(input.execute, probeCommand(endpoint.alias)) !== 0) {
+    if (await exitCode(input.execute, buildNetworkProbeCommand(endpoint.alias)) !== 0) {
       throw new Error("Permitted endpoint is unavailable through the official proxy");
     }
   }
-  if (await exitCode(input.execute, probeCommand(forbiddenHost)) === 0) {
+  if (await exitCode(input.execute, buildNetworkProbeCommand(forbiddenHost)) === 0) {
     throw new Error("Forbidden control hostname is reachable from the official container");
   }
   const firstEndpoint = input.endpoints[0];

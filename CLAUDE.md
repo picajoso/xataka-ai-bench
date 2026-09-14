@@ -86,7 +86,7 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 - Aislamiento Docker oficial; preflight de adaptadores dentro del contenedor. Solo se pasan los nombres de variables autorizadas, no sus valores en argumentos ni logs.
 - Imagen local construida: `aibench/agent-runner:opencode-1.18.30`.
 - La ejecución real aún no está conectada a la CLI: falta una configuración privada y segura del endpoint/credenciales.
-- La red oficial ya se aplica por run: agente en red interna efímera, proxy TCP de destino único y preflight que comprueba alias permitido y control prohibido. `blocked` conserva `--network none`. La imagen local `aibench/network-proxy:1.0.0` está construida; la evidencia registra versión y hash de allow-list, nunca destinos.
+- La red oficial ya se aplica por run: agente en red interna efímera, proxy TCP de destino único y preflight con handshake que comprueba el destino real y el control prohibido. `blocked` conserva `--network none`. La imagen local `aibench/network-proxy:1.0.1` está construida; la evidencia registra versión y hash de allow-list, nunca destinos.
 
 ### Evaluación y legacy
 
@@ -121,7 +121,7 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 Desde la raíz del repositorio, con Node 22:
 
 ```bash
-env PATH=/Users/javipas/.nvm/versions/node/v22.20.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin pnpm check
+env PATH=/Users/javipas/.nvm/versions/node/v22.20.0/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin pnpm check
 env PATH=/Users/javipas/.nvm/versions/node/v22.20.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin pnpm --filter @aibench/web build
 ```
 

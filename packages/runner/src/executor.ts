@@ -55,10 +55,10 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
           type: "diagnostic",
           payload: { networkIsolation: { status: "verified", ...evidence } },
         });
-      } catch {
+      } catch (error) {
         await options.store.appendEvent(options.run.runId, {
           type: "diagnostic",
-          payload: { networkIsolation: { status: "failed" } },
+          payload: { networkIsolation: { status: "failed", reason: message(error) } },
         });
         throw new Error("Official network isolation preflight failed");
       }
