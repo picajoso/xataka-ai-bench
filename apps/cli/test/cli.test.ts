@@ -68,3 +68,12 @@ describe("aibench run and status", () => {
     expect(result).toEqual({ exitCode: 0, output: '{"runId":"run-1","status":"READY_FOR_REVIEW"}\n' });
   });
 });
+
+describe("aibench review", () => {
+  test("requires a candidate identifier and reports only the review result", async () => {
+    await expect(runCli(["review"])).resolves.toEqual({ exitCode: 2, output: "review: candidate id is required\n" });
+    await expect(runCli(["review", "candidate-1", "--json"], {
+      review: (candidateId) => ({ candidateId, blocked: false }),
+    })).resolves.toEqual({ exitCode: 0, output: '{"candidateId":"candidate-1","blocked":false}\n' });
+  });
+});

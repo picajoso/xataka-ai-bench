@@ -6,7 +6,7 @@ import { loadBenchmark, loadSystemProfile, resolveBenchPaths } from "@aibench/co
 import { createBatchPlan, DockerIsolationProvider, PlanStore, RunStore, executeRun } from "@aibench/runner";
 
 export type CliResult = { exitCode: number; output: string };
-export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown> };
+export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown> };
 
 function flagValue(flags: string[], name: string): string | undefined {
   const index = flags.indexOf(name);
@@ -82,6 +82,12 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
       const paths = resolveBenchPaths();
       return new RunStore({ runsRoot: paths.runsRoot }).loadRun(id);
     }))(runId);
+    return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify(result)}\n` : `${JSON.stringify(result)}\n` };
+  }
+  if (command === "review") {
+    const candidateId = flags.find((flag) => !flag.startsWith("--"));
+    if (!candidateId) return { exitCode: 2, output: "review: candidate id is required\n" };
+    const result = await (dependencies.review ?? (async (id: string) => ({ candidateId: id, status: "not-configured" })))(candidateId);
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify(result)}\n` : `${JSON.stringify(result)}\n` };
   }
   if (command !== "doctor") return { exitCode: 2, output: "Usage: aibench doctor|list [--json]\n" };
