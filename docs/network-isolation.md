@@ -32,6 +32,12 @@ y una variable de entorno, no la dirección LAN ni un valor de clave. El runner
 inyecta `OPENCODE_CONFIG` dentro del contenedor para que OpenCode use esa copia
 privada.
 
+Los perfiles públicos pueden declarar directorios temporales efímeros. El perfil
+OpenCode + nInfer de Qwen habilita únicamente `/tmp`: el runner lo monta como
+`tmpfs` privado del contenedor y la configuración privada autoriza solo
+`/tmp/*` como `external_directory`. No equivale a conceder acceso a un
+directorio temporal del host ni a activar la aprobación automática de OpenCode.
+
 Cada endpoint usa un alias terminado en `.local`. Ese alias es el único
 destino que recibe el agente; el host y puerto reales se suministran al
 sidecar mediante su entorno de proceso y no aparecen en argumentos Docker,

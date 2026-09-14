@@ -76,6 +76,7 @@ class DockerWorkspace implements IsolatedWorkspace {
       "--tmpfs", "/home/aibench/.local:uid=10001,gid=10001,mode=700",
       "--tmpfs", "/home/aibench/.cache:uid=10001,gid=10001,mode=700",
       "--tmpfs", "/home/aibench/.config:uid=10001,gid=10001,mode=700",
+      "--tmpfs", "/tmp:uid=10001,gid=10001,mode=700",
       "--user", "10001:10001",
       "--pids-limit", String(this.request.limits.pids),
       "--cpus", String(this.request.limits.cpu),

@@ -78,7 +78,7 @@ describe("Docker isolation contract", () => {
     expect(readFileSync(log, "utf8")).toBe("stop\n--time\n10\naibench-agent-20260914T153808Z-timeout-test\n");
   });
 
-  test("provides only ephemeral XDG state directories required by OpenCode", async () => {
+  test("provides ephemeral XDG state and scoped scratch directories required by OpenCode", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
     const workspace = await isolation.prepare(request());
     const command = workspace.commandFor({ executable: "opencode", args: ["--version"] });
@@ -87,6 +87,7 @@ describe("Docker isolation contract", () => {
     expect(command).toContain("/home/aibench/.local:uid=10001,gid=10001,mode=700");
     expect(command).toContain("/home/aibench/.cache:uid=10001,gid=10001,mode=700");
     expect(command).toContain("/home/aibench/.config:uid=10001,gid=10001,mode=700");
+    expect(command).toContain("/tmp:uid=10001,gid=10001,mode=700");
   });
 
   test("translates the blocked policy to Docker's no-network mode", async () => {

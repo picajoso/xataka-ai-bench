@@ -44,6 +44,7 @@ export const SystemProfileSchema = z.object({
   permissions: z.object({
     networkPolicy: NetworkPolicySchema,
     tools: z.array(z.string().min(1)),
+    temporaryDirectories: z.array(z.string().regex(/^\/[A-Za-z0-9._/-]*$/)).default([]),
   }).strict(),
   credentials: z.object({
     environmentVariables: z.array(z.string().regex(/^[A-Z][A-Z0-9_]*$/)),
