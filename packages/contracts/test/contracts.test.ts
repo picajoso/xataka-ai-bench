@@ -98,6 +98,13 @@ describe("core contracts", () => {
     }
   });
 
+  test("records the nInfer medium model identifier served by the local endpoint", () => {
+    const repositoryRoot = resolve(import.meta.dirname, "../../..");
+    const profile = parseSystemProfile(parse(readFileSync(resolve(repositoryRoot, "systems/opencode-qwen38-ninfer-medium/system.yaml"), "utf8")));
+    expect(profile.version).toBe("1.1.0");
+    expect(profile.inference.parameters.opencodeModel).toBe("ninfer/qwen3.8-27b");
+  });
+
   test("requires immutable sortable run and technical-attempt identifiers", () => {
     const run = jsonFixture("run.valid.json") as Record<string, unknown>;
     expect(() => parseRunManifest({ ...run, runId: "run-1" })).toThrow();
