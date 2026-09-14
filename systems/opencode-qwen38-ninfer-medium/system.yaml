@@ -1,6 +1,6 @@
 schemaVersion: 1.0.0
 slug: opencode-qwen38-ninfer-medium
-version: 1.1.0
+version: 1.2.0
 displayName: OpenCode + Qwen3.8-27B (nInfer, razonamiento medio)
 model:
   provider: Qwen
@@ -25,7 +25,7 @@ inference:
   reasoning: medium
   quantization: null
   parameters:
-    opencodeModel: ninfer/qwen3.8-27b
+    opencodeModel: ninfer/qwen3.8-27b-nvfp4
 permissions:
   networkPolicy: package-registries-and-local-endpoint
   tools: [shell]
