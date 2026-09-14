@@ -6,5 +6,10 @@ profiles:
     adapter: opencode
     model: replace-with-your-opencode-provider/model
     variant: medium
+    endpoint:
+      # Private LAN target. Do not use a URL or commit a real value.
+      alias: inference.local
+      host: 192.168.0.10
+      port: 1234
     environmentVariables:
       - NINFER_API_KEY

@@ -4,6 +4,7 @@ export * from "./isolation/docker.js";
 export * from "./isolation/native.js";
 export * from "./isolation/types.js";
 export * from "./lock.js";
+export * from "./network/types.js";
 export * from "./planner.js";
 export * from "./plan-store.js";
 export * from "./run-store.js";

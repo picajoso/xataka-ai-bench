@@ -10,6 +10,14 @@ const ExecutionProfileSchema = z.object({
   model: z.string().min(1).refine((value) => !/(?:sk-|api[_-]?key|token|secret|password)/i.test(value), "model must not contain a secret"),
   variant: z.string().min(1).nullable(),
   environmentVariables: z.array(z.string().regex(/^[A-Z][A-Z0-9_]*$/)),
+  endpoint: z.object({
+    alias: z.string().regex(/^[a-z0-9-]+\.local$/, "endpoint alias must use the synthetic .local namespace"),
+    host: z.string().regex(/^[A-Za-z0-9.-]+$/, "endpoint host must be a hostname or IP address").refine(
+      (value) => !value.includes("..") && !value.startsWith(".") && !value.endsWith("."),
+      "endpoint host is malformed",
+    ),
+    port: z.number().int().min(1).max(65535),
+  }).strict().optional(),
 }).strict();
 
 const ExecutionProfilesFileSchema = z.object({
