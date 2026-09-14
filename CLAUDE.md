@@ -103,6 +103,7 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 - La CLI ya revisa candidaturas privadas y solo crea una aprobación al invocar explícitamente `aibench review <candidateId> --approve --reviewer <nombre>`. `aibench publish <candidateId> --stage-only` vuelve a comprobar el hash y únicamente entonces hace staging local; sigue sin hacer commit, push o despliegue.
 - Ensayo sintético automatizado: candidato → scanner → hash → aprobación → staging → manifiesto público. No usa modelos ni servicios externos.
 - `apps/web` usa Next.js con `output: 'export'`. Tiene portada, metodología, pruebas, sistemas y comparación en `/es` y `/en`. Lee solo `published/`; nunca `state/`. Todavía no hay resultados públicos reales, así que no existe una página dinámica de run: Next no permite exportar esa ruta si el catálogo está vacío. Activarla cuando se stagee el primer resultado.
+- `.github/workflows/check.yml` ejecuta instalación bloqueada, Chromium de Playwright, `pnpm check` y el export estático del portal en `main` y pull requests. No usa secretos ni configura Vercel.
 
 ## Mandamientos de seguridad y cambios
 
@@ -130,7 +131,7 @@ Los tests Docker reales solo se ejecutan con `AIBENCH_DOCKER_TESTS=1` y una imag
 1. Conectar un perfil privado de OpenCode de forma segura para una primera ejecución real pequeña y autorizada.
 2. Exponer reparación y evaluación desde la CLI.
 3. Stagear un resultado sintético o real aprobado, habilitar la página de detalle de run y comprobar el portal con datos reales.
-4. Añadir GitHub Actions y preview de Vercel. No configurar credenciales ni desplegar sin autorización explícita.
+4. Configurar una preview de Vercel tras crear/conectar el repositorio remoto. No configurar credenciales ni desplegar sin autorización explícita.
 5. Importar/copiado legacy únicamente cuando el usuario lo autorice expresamente.
 
 ## Evolución reciente
