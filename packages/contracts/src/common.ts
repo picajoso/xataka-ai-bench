@@ -30,6 +30,7 @@ export const BilingualTextSchema = z.object({
 
 export const NetworkPolicySchema = z.enum([
   "blocked",
+  "local-endpoint",
   "package-registries",
   "package-registries-and-local-endpoint",
   "custom",

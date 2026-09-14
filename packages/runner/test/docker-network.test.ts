@@ -25,4 +25,16 @@ describe("per-run Docker network leases", () => {
     expect(commands.at(-1)).toEqual(expect.arrayContaining(["network", "rm"]));
     expect(commands.flat().join(" ")).not.toContain("192.168.1.50");
   });
+
+  test("accepts exactly one endpoint for a local-endpoint-only run", async () => {
+    const commands: string[][] = [];
+    const provisioner = new DockerNetworkProvisioner({ proxyImage: "aibench/network-proxy:1.0.1", execute: async (args) => { commands.push(args); } });
+    const endpoint = parsePrivateEndpoint({ alias: "inference.local", host: "192.168.1.50", port: 1234 });
+
+    const lease = await provisioner.create({ runId: "20260914T120000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3", policy: "local-endpoint", endpoints: [endpoint] });
+    await lease!.dispose();
+
+    expect(commands[0]).toEqual(expect.arrayContaining(["network", "create", "--internal"]));
+    expect(commands[2]).toEqual(expect.arrayContaining(["network", "connect", "--alias", "inference.local"]));
+  });
 });

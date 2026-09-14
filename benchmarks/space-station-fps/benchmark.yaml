@@ -1,6 +1,6 @@
 schemaVersion: 1.0.0
 slug: space-station-fps
-version: 1.0.0
+version: 1.1.0
 state: draft
 category: browser-game
 title:
@@ -10,10 +10,10 @@ prompts:
   canonical:
     locale: es
     path: prompt.es.md
-    sha256: sha256:17beb5b025e28c3b4b02d9ba1598232ad4eff874ebf7ee2ba12abc9a4132dad6
+    sha256: sha256:295f2f2e0c6efba8b8649dfd920a7d5e1a92c20293f17174cdb37ead3fd60cb4
   translations: []
 network:
-  policy: package-registries-and-local-endpoint
+  policy: local-endpoint
   allowedHosts: []
 limits:
   firstShotSeconds: 1800

@@ -23,6 +23,12 @@ function jsonFixture(name: string): unknown {
 }
 
 describe("core contracts", () => {
+  test("accepts a local-endpoint-only network policy", () => {
+    const benchmark = yamlFixture("benchmark.valid.yaml") as Record<string, unknown>;
+    const network = benchmark.network as Record<string, unknown>;
+    expect(parseBenchmark({ ...benchmark, network: { ...network, policy: "local-endpoint" } }).network.policy).toBe("local-endpoint");
+  });
+
   test("accepts representative benchmark, system, run, evaluation and publication records", () => {
     expect(parseBenchmark(yamlFixture("benchmark.valid.yaml")).slug).toBe("smoke-text");
     expect(parseSystemProfile(yamlFixture("system.valid.yaml")).agent.name).toBe("OpenCode");

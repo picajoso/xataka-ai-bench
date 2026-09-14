@@ -21,17 +21,16 @@ No utilices imágenes, modelos 3D, texturas, sonidos ni otros assets descargados
 
 Todo el contenido visual necesario debe generarse mediante código.
 
-Puedes elegir libremente las tecnologías, estructura del proyecto y dependencias que consideres apropiadas.
+Puedes elegir libremente las tecnologías y estructura del proyecto, pero no instales dependencias ni accedas a la red para obtener código, bibliotecas ni assets. Todo debe funcionar sin conexión, usando únicamente lo disponible en el entorno y el contenido que generes localmente.
 
 El resultado debe ser realmente jugable, no simplemente una demostración visual.
 
 Antes de finalizar:
 
-1. instala las dependencias necesarias;
-2. ejecuta la aplicación;
-3. comprueba que no existen errores evidentes de ejecución;
-4. comprueba los controles principales;
-5. corrige cualquier problema que detectes.
+1. ejecuta la aplicación;
+2. comprueba que no existen errores evidentes de ejecución;
+3. comprueba los controles principales;
+4. corrige cualquier problema que detectes.
 
 No me pidas aclaraciones. Toma tú mismo las decisiones necesarias.
 

@@ -5,6 +5,7 @@ import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
+import { validatePrivateOpenCodeConfig } from "./opencode-config.js";
 
 export type CliResult = { exitCode: number; output: string };
 export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
@@ -70,13 +71,14 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
   if (!profile.opencodeConfigPath) throw new Error(`Private OpenCode configuration path is required for ${planned.systemSlug}`);
   const configPath = await realpath(resolve(dirname(profilesPath), profile.opencodeConfigPath));
   await access(configPath);
+  validatePrivateOpenCodeConfig(await readFile(configPath, "utf8"));
   const environment = Object.fromEntries(profile.environmentVariables.map((name) => {
     const value = process.env[name];
     if (!value) throw new Error(`Required private environment variable is unavailable: ${name}`);
     return [name, value];
   }));
   if (loaded.definition.network.policy === "custom") throw new Error("Custom network policies are not executable by the official Docker runner yet");
-  const endpoint = loaded.definition.network.policy === "package-registries-and-local-endpoint"
+  const endpoint = ["local-endpoint", "package-registries-and-local-endpoint"].includes(loaded.definition.network.policy)
     ? profile.endpoint ? parsePrivateEndpoint(profile.endpoint) : (() => { throw new Error(`A private endpoint is required for ${planned.systemSlug}`); })()
     : undefined;
   await Promise.all([mkdir(paths.runsRoot, { recursive: true }), mkdir(paths.workspaceRoot, { recursive: true }), mkdir(paths.reviewRoot, { recursive: true })]);

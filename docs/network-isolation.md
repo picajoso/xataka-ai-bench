@@ -13,6 +13,10 @@ interna se eliminan al finalizar el run. La política `blocked` mantiene
 
 Una política `package-registries` no puede salir directamente a npm desde la red interna: requiere que se declare un mirror o registry privado como destino permitido (por ejemplo, Verdaccio en la LAN).
 
+La política `local-endpoint` permite exactamente un endpoint privado, normalmente
+el de inferencia, sin prometer acceso a registros de paquetes. Es la adecuada
+para pruebas autocontenidas como `space-station-fps` 1.1.0.
+
 ## Configuración privada
 
 Copiar `examples/execution-profiles.example.yaml` a

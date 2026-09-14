@@ -2,7 +2,7 @@ import type { PrivateEndpoint } from "../network/types.js";
 
 export type ExecutionClass = "official-container" | "experimental-native";
 
-export type NetworkPolicy = "blocked" | "package-registries" | "package-registries-and-local-endpoint";
+export type NetworkPolicy = "blocked" | "local-endpoint" | "package-registries" | "package-registries-and-local-endpoint";
 
 export interface ResourceLimits {
   cpu: number;

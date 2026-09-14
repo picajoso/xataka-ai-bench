@@ -39,7 +39,7 @@ export function parsePrivateEndpoint(input: unknown): PrivateEndpoint {
 
 export function createNetworkEvidence(input: NetworkEvidenceInput): NetworkEvidence {
   if (!input.proxyVersion.trim()) throw new Error("Proxy version is required");
-  if (input.policy === "package-registries-and-local-endpoint" && !input.endpoint) {
+  if (["local-endpoint", "package-registries-and-local-endpoint"].includes(input.policy) && !input.endpoint) {
     throw new Error("A local-endpoint policy requires a private endpoint");
   }
   const allowList = input.endpoint

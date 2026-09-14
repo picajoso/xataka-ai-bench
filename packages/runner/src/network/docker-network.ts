@@ -32,7 +32,7 @@ function assertEndpoints(input: NetworkProvisioningInput): void {
   if (input.policy === "blocked") return;
   if (input.policy === "custom") throw new Error("Custom network policies are not available for official runs");
   if (input.endpoints.length === 0) throw new Error("An outbound network policy requires one or more private endpoints");
-  if (input.policy === "package-registries-and-local-endpoint" && input.endpoints.length !== 1) {
+  if (["local-endpoint", "package-registries-and-local-endpoint"].includes(input.policy) && input.endpoints.length !== 1) {
     throw new Error("The local-endpoint policy requires exactly one private endpoint");
   }
 }
