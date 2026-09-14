@@ -1,3 +1,5 @@
+import type { PrivateEndpoint } from "../network/types.js";
+
 export type ExecutionClass = "official-container" | "experimental-native";
 
 export type NetworkPolicy = "blocked" | "package-registries" | "package-registries-and-local-endpoint";
@@ -16,6 +18,7 @@ export interface IsolationRequest {
   workspacePath: string;
   outputPath: string;
   networkPolicy: NetworkPolicy;
+  privateEndpoints?: PrivateEndpoint[];
   limits: ResourceLimits;
 }
 

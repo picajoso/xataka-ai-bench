@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   DockerIsolationProvider,
   NativeIsolationProvider,
+  parsePrivateEndpoint,
   type IsolationRequest,
 } from "../src/index.js";
 
@@ -60,11 +61,30 @@ describe("Docker isolation contract", () => {
     expect(workspace.commandFor({ executable: "agent", args: [] })).toContain("none");
   });
 
-  test("uses a named network only when the policy allows it", async () => {
+  test("refuses an outbound policy until its private destinations are configured", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
-    const workspace = await isolation.prepare(request({ networkPolicy: "package-registries" }));
 
-    expect(workspace.commandFor({ executable: "agent", args: [] })).toContain("aibench-package-registry");
+    await expect(isolation.prepare(request({ networkPolicy: "package-registries" }))).rejects.toThrow(/private endpoints/i);
+  });
+
+  test("uses a per-run internal lease for an official endpoint and disposes it with the workspace", async () => {
+    let disposed = false;
+    const isolation = new DockerIsolationProvider({
+      image: "aibench/agent-runner:test",
+      networkProvisioner: {
+        async create() {
+          return { agentNetwork: "aibench-run-test", async dispose() { disposed = true; } };
+        },
+      },
+    });
+    const workspace = await isolation.prepare(request({
+      networkPolicy: "package-registries-and-local-endpoint",
+      privateEndpoints: [parsePrivateEndpoint({ alias: "inference.local", host: "192.168.1.50", port: 1234 })],
+    }));
+
+    expect(workspace.commandFor({ executable: "agent", args: [] })).toContain("aibench-run-test");
+    await workspace.dispose();
+    expect(disposed).toBe(true);
   });
 
   test("passes only credential names to Docker and never their values", async () => {
