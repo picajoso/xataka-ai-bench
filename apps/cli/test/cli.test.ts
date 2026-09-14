@@ -77,3 +77,11 @@ describe("aibench review", () => {
     })).resolves.toEqual({ exitCode: 0, output: '{"candidateId":"candidate-1","blocked":false}\n' });
   });
 });
+
+describe("aibench publish", () => {
+  test("requires stage-only mode and a candidate identifier", async () => {
+    await expect(runCli(["publish", "candidate-1"])).resolves.toEqual({ exitCode: 2, output: "publish: --stage-only is required\n" });
+    await expect(runCli(["publish", "--stage-only"])).resolves.toEqual({ exitCode: 2, output: "publish: candidate id is required\n" });
+    await expect(runCli(["publish", "candidate-1", "--stage-only", "--json"], { publish: (candidateId) => ({ candidateId, staged: true }) })).resolves.toEqual({ exitCode: 0, output: '{"candidateId":"candidate-1","staged":true}\n' });
+  });
+});
