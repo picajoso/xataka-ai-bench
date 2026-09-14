@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, readdir, rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import { assertRequestPathsWithinStorageRoot, type IsolationProvider, type IsolatedWorkspace, type IsolationRequest, type ProcessCommand, type ProcessEvent } from "./types.js";
 import { DockerNetworkProvisioner, type DockerCommandExecutor, type NetworkLease, type NetworkProvisioner } from "../network/docker-network.js";
 
@@ -110,10 +111,18 @@ class DockerWorkspace implements IsolatedWorkspace {
   async dispose(): Promise<void> {
     this.#disposed = true;
     for (const child of this.#children) child.kill("SIGTERM");
-    await Promise.all([
-      this.#networkLease?.dispose(),
-      rm(this.request.workspacePath, { recursive: true, force: true }),
-    ]);
+    await this.#networkLease?.dispose();
+    await this.#preserveWorkspace();
+    await rm(this.request.workspacePath, { recursive: true, force: true });
+  }
+
+  async #preserveWorkspace(): Promise<void> {
+    const entries = await readdir(this.request.workspacePath);
+    await Promise.all(entries.map(async (entry) => cp(
+      resolve(this.request.workspacePath, entry),
+      resolve(this.request.outputPath, entry),
+      { recursive: true, force: true },
+    )));
   }
 
   #assertActive(): void {

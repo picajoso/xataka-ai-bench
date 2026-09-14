@@ -102,6 +102,17 @@ describe("Docker isolation contract", () => {
     expect(command.join(" ")).not.toContain("secret-value-must-not-appear");
   });
 
+  test("preserves the final private workspace in the run output before cleanup", async () => {
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
+    const workspace = await isolation.prepare(request());
+    writeFileSync(join(workspace.request.workspacePath, "result.txt"), "private result\n");
+
+    await workspace.dispose();
+
+    expect(readFileSync(join(workspace.request.outputPath, "result.txt"), "utf8")).toBe("private result\n");
+    expect(existsSync(workspace.request.workspacePath)).toBe(false);
+  });
+
   test("rejects paths outside the benchmark storage root", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
 

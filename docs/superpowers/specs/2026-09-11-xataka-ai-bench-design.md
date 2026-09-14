@@ -120,7 +120,7 @@ Un contrato común encapsula preflight, construcción del comando, consumo de ev
 
 ### Aislamiento
 
-El modo oficial usa contenedores desechables mediante una interfaz compatible con Docker. Las credenciales se montan con el mínimo acceso y nunca se copian al resultado. Una prueba incompatible puede ejecutarse en modo nativo etiquetado como experimental.
+El modo oficial usa exclusivamente contenedores Docker desechables. Para políticas con salida, el agente se une solo a una red interna efímera y accede a cada destino declarado mediante un sidecar TCP de destino único; el preflight prueba el alias permitido y el fallo de un control prohibido antes de iniciar el adaptador. Los eventos guardan únicamente versión del proxy y hash de la allow-list. `blocked` usa `--network none`. Las credenciales se pasan por nombre con el mínimo acceso y nunca se copian al resultado. Una prueba nativa, si fuese imprescindible para depuración, se etiqueta como experimental y no se compara con resultados oficiales. El límite de Docker Desktop frente a IPs crudas de LAN se documenta en `docs/network-isolation.md`.
 
 ### Evaluación y captura
 

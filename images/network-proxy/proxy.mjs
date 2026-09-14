@@ -1,3 +1,4 @@
+/* global console, process */
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 

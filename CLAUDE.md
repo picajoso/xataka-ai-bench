@@ -86,6 +86,7 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 - Aislamiento Docker oficial; preflight de adaptadores dentro del contenedor. Solo se pasan los nombres de variables autorizadas, no sus valores en argumentos ni logs.
 - Imagen local construida: `aibench/agent-runner:opencode-1.18.30`.
 - La ejecución real aún no está conectada a la CLI: falta una configuración privada y segura del endpoint/credenciales.
+- La red oficial ya se aplica por run: agente en red interna efímera, proxy TCP de destino único y preflight que comprueba alias permitido y control prohibido. `blocked` conserva `--network none`. La imagen local `aibench/network-proxy:1.0.0` está construida; la evidencia registra versión y hash de allow-list, nunca destinos.
 
 ### Evaluación y legacy
 
@@ -129,10 +130,11 @@ Los tests Docker reales solo se ejecutan con `AIBENCH_DOCKER_TESTS=1` y una imag
 ## Próximos pasos recomendados
 
 1. Conectar un perfil privado de OpenCode de forma segura para una primera ejecución real pequeña y autorizada.
-2. Exponer reparación y evaluación desde la CLI.
-3. Stagear un resultado sintético o real aprobado, habilitar la página de detalle de run y comprobar el portal con datos reales.
-4. Configurar una preview de Vercel tras crear/conectar el repositorio remoto. No configurar credenciales ni desplegar sin autorización explícita.
-5. Importar/copiado legacy únicamente cuando el usuario lo autorice expresamente.
+2. Persistir el árbol final de un workspace oficial antes de limpiar el contenedor y exponer la ejecución real en la CLI.
+3. Exponer reparación y evaluación desde la CLI.
+4. Stagear un resultado sintético o real aprobado, habilitar la página de detalle de run y comprobar el portal con datos reales.
+5. Configurar una preview de Vercel tras crear/conectar el repositorio remoto. No configurar credenciales ni desplegar sin autorización explícita.
+6. Importar/copiado legacy únicamente cuando el usuario lo autorice expresamente.
 
 ## Evolución reciente
 
