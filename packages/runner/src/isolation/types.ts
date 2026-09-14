@@ -19,6 +19,7 @@ export interface IsolationRequest {
   outputPath: string;
   networkPolicy: NetworkPolicy;
   privateEndpoints?: PrivateEndpoint[];
+  proxyVersion?: string;
   limits: ResourceLimits;
 }
 

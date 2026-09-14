@@ -1,6 +1,7 @@
 import type { AgentAdapter } from "@aibench/adapters";
 import type { RunManifest } from "@aibench/contracts";
 import type { IsolationProvider, IsolationRequest, IsolatedWorkspace } from "./isolation/types.js";
+import { verifyNetworkIsolation } from "./network/preflight.js";
 import { RunStore, type RunHandle } from "./run-store.js";
 import type { RunStatus } from "./state-machine.js";
 
@@ -40,6 +41,28 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
         env: { ...(options.environment ?? {}), ...(command.env ?? {}) },
       }),
     };
+    if (options.isolationRequest.networkPolicy !== "blocked") {
+      try {
+        const proxyVersion = options.isolationRequest.proxyVersion;
+        if (!proxyVersion) throw new Error("Official network isolation requires a pinned proxy version");
+        const evidence = await verifyNetworkIsolation({
+          policy: options.isolationRequest.networkPolicy,
+          endpoints: options.isolationRequest.privateEndpoints ?? [],
+          proxyVersion,
+          execute: context.commandExecutor,
+        });
+        await options.store.appendEvent(options.run.runId, {
+          type: "diagnostic",
+          payload: { networkIsolation: { status: "verified", ...evidence } },
+        });
+      } catch {
+        await options.store.appendEvent(options.run.runId, {
+          type: "diagnostic",
+          payload: { networkIsolation: { status: "failed" } },
+        });
+        throw new Error("Official network isolation preflight failed");
+      }
+    }
     const preflight = await options.adapter.preflight(context);
     await options.store.appendEvent(options.run.runId, {
       type: "diagnostic",

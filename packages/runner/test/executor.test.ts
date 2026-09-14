@@ -7,6 +7,7 @@ import {
   DockerIsolationProvider,
   RunStore,
   executeRun,
+  parsePrivateEndpoint,
   type CreateRunPlan,
   type IsolationRequest,
   type IsolationProvider,
@@ -63,6 +64,39 @@ function isolationRequest(root: string, runId: string): IsolationRequest {
 }
 
 describe("executeRun", () => {
+  test("records infrastructure failure before adapter preflight when a forbidden network control is reachable", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
+    let adapterPreflightCalled = false;
+    const adapter: AgentAdapter = {
+      name: "inspection",
+      async preflight() { adapterPreflightCalled = true; return { ok: true, adapter: "inspection", version: "1", diagnostics: [] }; },
+      async *start() { yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "success", exitCode: 0 }; },
+      async cancel() {},
+    };
+    const isolation: IsolationProvider = {
+      async prepare(request) {
+        return {
+          request, executionClass: "official-container" as const,
+          commandFor: () => [],
+          async *exec() { yield { type: "exit" as const, exitCode: 0 }; },
+          async dispose() {},
+        } satisfies IsolatedWorkspace;
+      },
+    };
+    const request = {
+      ...isolationRequest(root, run.runId),
+      networkPolicy: "package-registries-and-local-endpoint" as const,
+      privateEndpoints: [parsePrivateEndpoint({ alias: "inference.local", host: "192.168.1.50", port: 1234 })],
+      proxyVersion: "1.0.0",
+    };
+
+    const result = await executeRun({ store, run, prompt: "Build.", timeoutMs: 100, adapter, isolation, isolationRequest: request });
+
+    expect(result).toMatchObject({ status: "INFRA_ERROR", failure: { classification: "INFRA_ERROR" } });
+    expect(adapterPreflightCalled).toBe(false);
+  });
+
   test("gives adapters a container workspace and an isolated command executor", async () => {
     const { root, store } = setup();
     const run = await store.createRun(plan);
