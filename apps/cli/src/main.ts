@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { FakeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, PlanStore, RunStore, executeRun } from "@aibench/runner";
+import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
 
 export type CliResult = { exitCode: number; output: string };
 export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
@@ -52,6 +53,40 @@ async function runFakeSmoke(planId: string): Promise<string> {
   return run.runId;
 }
 
+async function reviewPrivateCandidate(candidateId: string, approve: boolean, reviewer: string | undefined): Promise<unknown> {
+  const paths = resolveBenchPaths();
+  const reviewed = await buildReviewedCandidate(paths.reviewRoot, candidateId);
+  if (!approve) {
+    return { candidateId, runId: reviewed.record.runId, packageHash: reviewed.candidate.packageHash, status: "ready-for-approval" };
+  }
+  if (!reviewer) throw new Error("review: --reviewer is required with --approve");
+  const approval = approveCandidate({
+    candidateId,
+    packageHash: reviewed.candidate.packageHash,
+    reviewer,
+    approvedAt: new Date().toISOString(),
+  });
+  await saveApprovalRecord(dirname(reviewed.record.packageRoot), approval);
+  return { candidateId, runId: reviewed.record.runId, packageHash: reviewed.candidate.packageHash, status: "approved", approval };
+}
+
+async function stagePrivateCandidate(candidateId: string): Promise<unknown> {
+  const paths = resolveBenchPaths();
+  const reviewed = await buildReviewedCandidate(paths.reviewRoot, candidateId);
+  const approval = await loadApprovalRecord(dirname(reviewed.record.packageRoot));
+  if (approval.candidateId !== candidateId) throw new Error("Approval record does not belong to this candidate");
+  const staged = await stageApprovedCandidate({
+    source: reviewed.record.packageRoot,
+    publishedRoot: join(paths.repoRoot, "published"),
+    runId: reviewed.record.runId,
+    packageHash: reviewed.candidate.packageHash,
+    approvedPackageHash: approval.approvedPackageHash,
+    includedPaths: reviewed.candidate.includedPaths,
+    publication: reviewed.record.publication,
+  });
+  return { candidateId, runId: reviewed.record.runId, status: "staged", ...staged };
+}
+
 export async function runCli(args: string[], dependencies: CliDependencies = {}): Promise<CliResult> {
   const [command, ...flags] = args;
   if (command === "list") {
@@ -87,14 +122,17 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
   if (command === "review") {
     const candidateId = flags.find((flag) => !flag.startsWith("--"));
     if (!candidateId) return { exitCode: 2, output: "review: candidate id is required\n" };
-    const result = await (dependencies.review ?? (async (id: string) => ({ candidateId: id, status: "not-configured" })))(candidateId);
+    const approve = flags.includes("--approve");
+    const reviewer = flagValue(flags, "--reviewer");
+    if (approve && !reviewer) return { exitCode: 2, output: "review: --reviewer is required with --approve\n" };
+    const result = await (dependencies.review ?? ((id: string) => reviewPrivateCandidate(id, approve, reviewer)))(candidateId);
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify(result)}\n` : `${JSON.stringify(result)}\n` };
   }
   if (command === "publish") {
     if (!flags.includes("--stage-only")) return { exitCode: 2, output: "publish: --stage-only is required\n" };
     const candidateId = flags.find((flag) => !flag.startsWith("--"));
     if (!candidateId) return { exitCode: 2, output: "publish: candidate id is required\n" };
-    const result = await (dependencies.publish ?? (async (id: string) => ({ candidateId: id, status: "not-configured" })))(candidateId);
+    const result = await (dependencies.publish ?? stagePrivateCandidate)(candidateId);
     return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify(result)}\n` : `${JSON.stringify(result)}\n` };
   }
   if (command !== "doctor") return { exitCode: 2, output: "Usage: aibench doctor|list [--json]\n" };

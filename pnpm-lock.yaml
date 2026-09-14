@@ -41,6 +41,9 @@ importers:
       '@aibench/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@aibench/publisher':
+        specifier: workspace:*
+        version: link:../../packages/publisher
       '@aibench/runner':
         specifier: workspace:*
         version: link:../../packages/runner

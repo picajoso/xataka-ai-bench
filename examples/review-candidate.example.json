@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "candidateId": "candidate-example-001",
+  "runId": "20260914T120000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3",
+  "allowedPaths": [
+    "summary.md",
+    "evidence/screenshot.png"
+  ],
+  "publication": {
+    "schemaVersion": "1.0.0",
+    "runId": "20260914T120000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3",
+    "publishedAt": "2026-09-14T12:00:00.000Z",
+    "official": true,
+    "sourceInputs": {
+      "visibility": "public",
+      "redistributable": true
+    },
+    "summary": {
+      "es": "Sustituir por el resumen editorial del resultado.",
+      "en": "Replace with the editorial result summary."
+    },
+    "includedPaths": [
+      "summary.md",
+      "evidence/screenshot.png"
+    ],
+    "evidencePaths": [
+      "evidence/screenshot.png"
+    ],
+    "demo": null,
+    "packageHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

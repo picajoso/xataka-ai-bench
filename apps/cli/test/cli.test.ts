@@ -76,6 +76,13 @@ describe("aibench review", () => {
       review: (candidateId) => ({ candidateId, blocked: false }),
     })).resolves.toEqual({ exitCode: 0, output: '{"candidateId":"candidate-1","blocked":false}\n' });
   });
+
+  test("requires a named reviewer for an explicit approval", async () => {
+    await expect(runCli(["review", "candidate-1", "--approve"])).resolves.toEqual({
+      exitCode: 2,
+      output: "review: --reviewer is required with --approve\n",
+    });
+  });
 });
 
 describe("aibench publish", () => {

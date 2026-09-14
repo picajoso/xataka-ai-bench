@@ -99,6 +99,8 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 - Empaquetado por lista blanca con hash determinista.
 - Aprobación ligada al hash: no se puede reutilizar si el paquete cambia.
 - Staging atómico bajo `published/runs/<runId>`, sin Git push ni Vercel. Exige y escribe un `publication.json` validado.
+- Contrato privado de candidatura en `state/review/candidates/<candidateId>/`, con `candidate.json`, paquete permitido y aprobación inmutable separada. Hay una plantilla segura en `examples/review-candidate.example.json` y documentación en `docs/private-review-candidates.md`; no contienen secretos ni rutas personales.
+- La CLI ya revisa candidaturas privadas y solo crea una aprobación al invocar explícitamente `aibench review <candidateId> --approve --reviewer <nombre>`. `aibench publish <candidateId> --stage-only` vuelve a comprobar el hash y únicamente entonces hace staging local; sigue sin hacer commit, push o despliegue.
 - Ensayo sintético automatizado: candidato → scanner → hash → aprobación → staging → manifiesto público. No usa modelos ni servicios externos.
 - `apps/web` usa Next.js con `output: 'export'`. Tiene portada, metodología, pruebas, sistemas y comparación en `/es` y `/en`. Lee solo `published/`; nunca `state/`. Todavía no hay resultados públicos reales, así que no existe una página dinámica de run: Next no permite exportar esa ruta si el catálogo está vacío. Activarla cuando se stagee el primer resultado.
 
@@ -125,12 +127,11 @@ Los tests Docker reales solo se ejecutan con `AIBENCH_DOCKER_TESTS=1` y una imag
 
 ## Próximos pasos recomendados
 
-1. Añadir a la CLI comandos de `review` y `publish --stage-only`, sin push ni deploy.
-2. Conectar un perfil privado de OpenCode de forma segura para una primera ejecución real pequeña y autorizada.
-3. Exponer reparación y evaluación desde la CLI.
-4. Stagear un resultado sintético o real aprobado, habilitar la página de detalle de run y comprobar el portal con datos reales.
-5. Añadir GitHub Actions y preview de Vercel. No configurar credenciales ni desplegar sin autorización explícita.
-6. Importar/copiado legacy únicamente cuando el usuario lo autorice expresamente.
+1. Conectar un perfil privado de OpenCode de forma segura para una primera ejecución real pequeña y autorizada.
+2. Exponer reparación y evaluación desde la CLI.
+3. Stagear un resultado sintético o real aprobado, habilitar la página de detalle de run y comprobar el portal con datos reales.
+4. Añadir GitHub Actions y preview de Vercel. No configurar credenciales ni desplegar sin autorización explícita.
+5. Importar/copiado legacy únicamente cuando el usuario lo autorice expresamente.
 
 ## Evolución reciente
 
