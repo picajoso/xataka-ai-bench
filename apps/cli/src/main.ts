@@ -1,9 +1,9 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { access, mkdir, readFile, realpath } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { dirname, join } from "node:path";
-import { FakeAdapter } from "@aibench/adapters";
-import { loadBenchmark, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
-import { createBatchPlan, DockerIsolationProvider, PlanStore, RunStore, executeRun } from "@aibench/runner";
+import { dirname, join, resolve } from "node:path";
+import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
+import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
+import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
 
 export type CliResult = { exitCode: number; output: string };
@@ -49,6 +49,55 @@ async function runFakeSmoke(planId: string): Promise<string> {
     adapter: new FakeAdapter({ events: [{ type: "session.started", sessionId: "fake" }, { type: "session.finished", outcome: "success", exitCode: 0 }] }),
     isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:local" }),
     isolationRequest: { runId: run.runId, executionClass: "official-container", storageRoot: dirname(paths.dataRoot), fixturesPath: loaded.directory, workspacePath: join(paths.workspaceRoot, run.runId), outputPath: join(paths.reviewRoot, run.runId), networkPolicy: "blocked", limits: { cpu: 1, memoryMb: 512, pids: 32 } },
+  });
+  return run.runId;
+}
+
+async function runOfficialOpenCode(planId: string): Promise<string> {
+  const paths = resolveBenchPaths();
+  const plan = await new PlanStore({ plansRoot: paths.plansRoot }).load(planId);
+  if (!plan.official || plan.runs.length !== 1) throw new Error(`Plan ${planId} must contain exactly one official run`);
+  const planned = plan.runs[0]!;
+  const benchmarkPath = join(paths.repoRoot, "benchmarks", planned.benchmarkSlug, "benchmark.yaml");
+  const loaded = await loadBenchmark(benchmarkPath);
+  const system = await loadSystemProfile(join(paths.repoRoot, "systems", planned.systemSlug, "system.yaml"));
+  if (planned.benchmarkHash !== loaded.definitionHash || planned.systemHash !== system.profileHash) {
+    throw new Error("Plan inputs no longer match their immutable benchmark or system profile");
+  }
+  const profilesPath = join(paths.dataRoot, "execution-profiles.yaml");
+  const profile = (await loadExecutionProfiles(profilesPath)).find((candidate) => candidate.systemSlug === planned.systemSlug);
+  if (!profile || profile.adapter !== "opencode") throw new Error(`No private OpenCode execution profile is configured for ${planned.systemSlug}`);
+  if (!profile.opencodeConfigPath) throw new Error(`Private OpenCode configuration path is required for ${planned.systemSlug}`);
+  const configPath = await realpath(resolve(dirname(profilesPath), profile.opencodeConfigPath));
+  await access(configPath);
+  const environment = Object.fromEntries(profile.environmentVariables.map((name) => {
+    const value = process.env[name];
+    if (!value) throw new Error(`Required private environment variable is unavailable: ${name}`);
+    return [name, value];
+  }));
+  if (loaded.definition.network.policy === "custom") throw new Error("Custom network policies are not executable by the official Docker runner yet");
+  const endpoint = loaded.definition.network.policy === "package-registries-and-local-endpoint"
+    ? profile.endpoint ? parsePrivateEndpoint(profile.endpoint) : (() => { throw new Error(`A private endpoint is required for ${planned.systemSlug}`); })()
+    : undefined;
+  await Promise.all([mkdir(paths.runsRoot, { recursive: true }), mkdir(paths.workspaceRoot, { recursive: true }), mkdir(paths.reviewRoot, { recursive: true })]);
+  const locale = loaded.definition.prompts.canonical.locale;
+  const prompt = await readFile(join(loaded.directory, loaded.definition.prompts.canonical.path), "utf8");
+  const store = new RunStore({ runsRoot: paths.runsRoot });
+  const run = await store.createRun({
+    benchmark: { slug: loaded.definition.slug, version: loaded.definition.version, definitionHash: loaded.definitionHash, promptHash: loaded.promptHashes[locale]!, promptLocale: locale, inputsPublic: loaded.definition.inputs.visibility === "public" },
+    system: { slug: system.profile.slug, version: system.profile.version, profileHash: system.profileHash },
+    attempt: { kind: "first-shot", parent: null }, executionClass: "official-container",
+  });
+  await executeRun({
+    store, run, prompt, timeoutMs: loaded.definition.limits.firstShotSeconds * 1000,
+    adapter: new OpenCodeAdapter({ executable: system.profile.agent.executable, model: profile.model, ...(profile.variant ? { variant: profile.variant } : {}) }),
+    isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:opencode-1.18.30" }),
+    isolationRequest: {
+      runId: run.runId, executionClass: "official-container", storageRoot: dirname(paths.dataRoot), fixturesPath: loaded.directory,
+      workspacePath: join(paths.workspaceRoot, run.runId), outputPath: join(paths.reviewRoot, run.runId), privateConfigPath: configPath,
+      networkPolicy: loaded.definition.network.policy, privateEndpoints: endpoint ? [endpoint] : [], proxyVersion: "1.0.1", limits: { cpu: 2, memoryMb: 4096, pids: 256 },
+    },
+    environment: { ...environment, OPENCODE_CONFIG: "/aibench/opencode.json" },
   });
   return run.runId;
 }
@@ -106,9 +155,13 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
     if (!planId) return { exitCode: 2, output: "run: --plan is required\n" };
     const adapter = flagValue(flags, "--adapter") ?? "fake";
     if (adapter !== "fake" && !flags.includes("--confirm")) return { exitCode: 2, output: "run: --confirm is required for a real adapter\n" };
-    if (adapter !== "fake") return { exitCode: 2, output: "run: real adapter execution is not configured yet\n" };
-    const runId = await (dependencies.run ?? (() => runFakeSmoke(planId)))();
-    return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `run: ${runId}\n` };
+    if (adapter !== "fake" && adapter !== "opencode") return { exitCode: 2, output: `run: adapter ${adapter} is not configured for official containers yet\n` };
+    try {
+      const runId = await (dependencies.run ?? (adapter === "opencode" ? () => runOfficialOpenCode(planId) : () => runFakeSmoke(planId)))();
+      return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `run: ${runId}\n` };
+    } catch (error) {
+      return { exitCode: 1, output: `run: ${error instanceof Error ? error.message : "unknown error"}\n` };
+    }
   }
   if (command === "status") {
     const runId = flags.find((flag) => !flag.startsWith("--"));

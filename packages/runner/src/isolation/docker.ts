@@ -81,6 +81,7 @@ class DockerWorkspace implements IsolatedWorkspace {
       "--mount", `type=bind,src=${this.request.fixturesPath},dst=/fixtures,readonly`,
       "--mount", `type=bind,src=${this.request.workspacePath},dst=/workspace`,
       "--mount", `type=bind,src=${this.request.outputPath},dst=/output`,
+      ...(this.request.privateConfigPath ? ["--mount", `type=bind,src=${this.request.privateConfigPath},dst=/aibench/opencode.json,readonly`] : []),
       "--workdir", "/workspace",
       ...passedEnvironment,
       this.#image,

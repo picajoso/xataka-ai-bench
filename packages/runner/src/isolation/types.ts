@@ -17,6 +17,7 @@ export interface IsolationRequest {
   fixturesPath: string;
   workspacePath: string;
   outputPath: string;
+  privateConfigPath?: string;
   networkPolicy: NetworkPolicy;
   privateEndpoints?: PrivateEndpoint[];
   proxyVersion?: string;
@@ -48,7 +49,7 @@ export interface IsolationProvider {
 }
 
 export function assertRequestPathsWithinStorageRoot(request: IsolationRequest): void {
-  for (const path of [request.fixturesPath, request.workspacePath, request.outputPath]) {
+  for (const path of [request.fixturesPath, request.workspacePath, request.outputPath, request.privateConfigPath].filter((path): path is string => Boolean(path))) {
     const relation = relative(resolve(request.storageRoot), resolve(path));
     if (relation === "" || relation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute(relation)) {
       throw new Error("Isolation paths must be contained by the benchmark storage root");

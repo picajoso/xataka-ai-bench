@@ -221,10 +221,10 @@ describe("benchmark catalog", () => {
     const path = join(root, "execution-profiles.yaml");
     writeFileSync(path, stringify({
       schemaVersion: "1.0.0",
-      profiles: [{ systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"], endpoint: { alias: "inference.local", host: "192.168.1.50", port: 1234 } }],
+      profiles: [{ systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"], opencodeConfigPath: "configs/ninfer.json", endpoint: { alias: "inference.local", host: "192.168.1.50", port: 1234 } }],
     }));
     await expect(loadExecutionProfiles(path)).resolves.toEqual([{
-      systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"], endpoint: { alias: "inference.local", host: "192.168.1.50", port: 1234 },
+      systemSlug: "opencode-qwen38-ninfer-medium", adapter: "opencode", model: "ninfer/qwen3.8-27b", variant: "medium", environmentVariables: ["NINFER_API_KEY"], opencodeConfigPath: "configs/ninfer.json", endpoint: { alias: "inference.local", host: "192.168.1.50", port: 1234 },
     }]);
   });
 });

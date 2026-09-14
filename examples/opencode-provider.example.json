@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ninfer": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "nInfer private benchmark endpoint",
+      "options": {
+        "baseURL": "http://inference.local:8080/v1",
+        "apiKey": "{env:NINFER_API_KEY}"
+      },
+      "models": {
+        "replace-with-model-id": {
+          "name": "Private benchmark model"
+        }
+      }
+    }
+  }
+}

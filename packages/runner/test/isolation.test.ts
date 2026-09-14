@@ -102,6 +102,29 @@ describe("Docker isolation contract", () => {
     expect(command.join(" ")).not.toContain("secret-value-must-not-appear");
   });
 
+  test("mounts a private agent configuration read-only without exposing its host path to the agent", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-isolation-config-"));
+    temporaryDirectories.push(root);
+    mkdirSync(join(root, "fixtures"));
+    const configPath = join(root, "opencode.json");
+    writeFileSync(configPath, "{}\n");
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
+    const workspace = await isolation.prepare({
+      runId: "20260911T150000000Z-config-test",
+      executionClass: "official-container",
+      storageRoot: root,
+      fixturesPath: join(root, "fixtures"),
+      workspacePath: join(root, "workspace"),
+      outputPath: join(root, "output"),
+      privateConfigPath: configPath,
+      networkPolicy: "blocked",
+      limits: { cpu: 2, memoryMb: 4096, pids: 256 },
+    });
+
+    const command = workspace.commandFor({ executable: "agent", args: ["run"], env: { OPENCODE_CONFIG: "/aibench/opencode.json" } });
+    expect(command).toContain(`type=bind,src=${configPath},dst=/aibench/opencode.json,readonly`);
+  });
+
   test("preserves the final private workspace in the run output before cleanup", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
     const workspace = await isolation.prepare(request());

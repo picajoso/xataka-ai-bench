@@ -6,6 +6,9 @@ profiles:
     adapter: opencode
     model: replace-with-your-opencode-provider/model
     variant: medium
+    # Relative to the directory containing execution-profiles.yaml. This file stays private.
+    # Its provider baseURL must use http://inference.local:8080/v1, never the LAN address.
+    opencodeConfigPath: configs/ninfer-opencode.json
     endpoint:
       # Private LAN target. Do not use a URL or commit a real value.
       alias: inference.local

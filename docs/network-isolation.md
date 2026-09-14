@@ -21,6 +21,13 @@ privado puede contener un host LAN y puerto, pero nunca una URL completa, una
 clave API ni valores de variables de entorno. Las claves se siguen inyectando
 desde el entorno del proceso por nombre.
 
+Para OpenCode, copiar también `examples/opencode-provider.example.json` a la
+ruta privada indicada por `opencodeConfigPath`. El archivo se monta de solo
+lectura como `/aibench/opencode.json`; debe referenciar `inference.local:8080`
+y una variable de entorno, no la dirección LAN ni un valor de clave. El runner
+inyecta `OPENCODE_CONFIG` dentro del contenedor para que OpenCode use esa copia
+privada.
+
 Cada endpoint usa un alias terminado en `.local`. Ese alias es el único
 destino que recibe el agente; el host y puerto reales se suministran al
 sidecar mediante su entorno de proceso y no aparecen en argumentos Docker,
