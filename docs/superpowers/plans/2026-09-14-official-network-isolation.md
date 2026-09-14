@@ -4,7 +4,7 @@
 
 **Goal:** Enforce and measure the network policy of every official Docker run without exposing endpoints or credentials.
 
-**Architecture:** A per-run Docker network joins the agent to a minimal TCP proxy sidecar. The sidecar receives private destination data, while the agent sees only a synthetic alias. Preflight verifies the permitted alias works and a prohibited hostname fails, emitting safe diagnostics before an adapter can start.
+**Architecture:** A per-run internal Docker network joins the agent to a minimal TCP proxy sidecar. The sidecar alone also joins Docker's egress network and receives private destination data, while the agent sees only a synthetic alias. Preflight verifies the permitted alias works and a prohibited hostname fails, emitting safe diagnostics before an adapter can start.
 
 **Tech Stack:** TypeScript, Docker CLI, Vitest, Node TCP networking.
 
@@ -51,7 +51,7 @@
 
 - [ ] **Step 1: Write failing tests** using a Docker-command seam; assert `blocked` produces no lease, names derive from a run identifier and disposal always issues sidecar removal before network removal.
 - [ ] **Step 2: Run** `pnpm exec vitest run packages/runner/test/docker-network.test.ts` and confirm failure.
-- [ ] **Step 3: Implement the provisioner** with `docker network create --internal`, proxy sidecar startup and a unique synthetic alias; pass only environment-variable names or mounted private config, never values in CLI arguments.
+- [ ] **Step 3: Implement the provisioner** with `docker network create --internal`, proxy sidecar startup attached to that internal network and Docker's egress network, and a unique synthetic alias; pass only environment-variable names or mounted private config, never values in CLI arguments.
 - [ ] **Step 4: Integrate lease lifecycle** into `DockerIsolationProvider`, ensuring `dispose` runs in existing executor `finally` paths.
 - [ ] **Step 5: Re-run focused tests and commit** with `feat: add per-run Docker network leases`.
 

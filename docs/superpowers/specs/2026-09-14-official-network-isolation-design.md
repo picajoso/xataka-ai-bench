@@ -13,12 +13,12 @@ La selección de una red Docker con nombre no limita por sí misma el tráfico s
 Para cada run oficial que requiera salida se crean recursos efímeros y exclusivos:
 
 ```text
-contenedor agente ── red privada efímera ── sidecar proxy ── endpoint privado permitido
+contenedor agente ── red interna efímera ── sidecar proxy ── red de salida ── endpoint privado permitido
 ```
 
 El agente recibe un nombre de host sintético, no resoluble fuera de esa red, que se conecta al sidecar. El sidecar conoce el host y puerto reales del endpoint desde la configuración privada del run y reenvía únicamente TCP a ese destino. El perfil público conserva solo la descripción segura del backend; el endpoint, los valores de variables y las claves no entran en Git, eventos ni manifiestos públicos.
 
-El sidecar y el agente comparten una red efímera creada por run y destruida al terminar, incluso tras fallo o cancelación. Para `blocked` no se crea red ni sidecar y se conserva `--network none`.
+El agente solo se conecta a una red interna efímera creada por run. El sidecar es el único contenedor con dos interfaces: esa red interna y una red de salida de Docker. Así puede alcanzar el PC de inferencia, mientras que el agente no tiene ruta directa fuera de la red interna. Ambas conexiones del sidecar, el sidecar y la red interna se eliminan al terminar, incluso tras fallo o cancelación. Para `blocked` no se crea red ni sidecar y se conserva `--network none`.
 
 La política `package-registries` usa un sidecar con una allow-list privada de registries. `package-registries-and-local-endpoint` añade un único destino local de inferencia. La primera implementación no declara una garantía de firewall contra conexiones de IP cruda desde Docker Desktop para macOS: reduce fugas accidentales, dificulta la salida no autorizada por hostname y deja ese límite documentado. Una garantía dura futura requerirá una VM Linux con reglas de egress controladas por run.
 
