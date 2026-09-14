@@ -40,6 +40,7 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
         ...command,
         env: { ...(options.environment ?? {}), ...(command.env ?? {}) },
       }),
+      cancelExecution: () => activeWorkspace.cancel(),
     };
     if (options.isolationRequest.networkPolicy !== "blocked") {
       try {

@@ -41,6 +41,7 @@ export interface IsolatedWorkspace {
   readonly executionClass: ExecutionClass;
   commandFor(command: ProcessCommand): string[];
   exec(command: ProcessCommand): AsyncIterable<ProcessEvent>;
+  cancel(): Promise<void>;
   dispose(): Promise<void>;
 }
 

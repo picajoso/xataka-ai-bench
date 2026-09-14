@@ -100,6 +100,7 @@ export class OpenCodeAdapter implements AgentAdapter {
   readonly name = "opencode";
   readonly #options: OpenCodeAdapterOptions;
   #active: OpenCodeLaunch | undefined;
+  #cancelExecution: (() => Promise<void>) | undefined;
 
   constructor(options: OpenCodeAdapterOptions) { this.#options = options; }
 
@@ -121,6 +122,7 @@ export class OpenCodeAdapter implements AgentAdapter {
     const command = buildOpenCodeCommand({ executable: this.#options.executable, workspaceRoot: context.workspaceRoot, prompt: context.prompt, model: this.#options.model, ...(this.#options.variant ? { variant: this.#options.variant } : {}) });
     const launch = context.commandExecutor ? undefined : (this.#options.launcher ?? defaultLauncher)(command);
     this.#active = launch;
+    this.#cancelExecution = context.cancelExecution;
     const clock = this.#options.clock ?? (() => new Date());
     try {
       for await (const chunk of context.commandExecutor ? isolatedOutput(context, command) : launch!.output()) {
@@ -132,8 +134,16 @@ export class OpenCodeAdapter implements AgentAdapter {
           for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) yield* normalizeOpenCodeJsonLine(line, timestamp);
         }
       }
-    } finally { if (this.#active === launch) this.#active = undefined; }
+    } finally {
+      if (this.#active === launch) this.#active = undefined;
+      if (this.#cancelExecution === context.cancelExecution) this.#cancelExecution = undefined;
+    }
   }
 
-  async cancel(reason: string): Promise<void> { await this.#active?.cancel(reason); }
+  async cancel(reason: string): Promise<void> {
+    const cancellations: Promise<void>[] = [];
+    if (this.#active) cancellations.push(this.#active.cancel(reason));
+    if (this.#cancelExecution) cancellations.push(this.#cancelExecution());
+    await Promise.all(cancellations);
+  }
 }

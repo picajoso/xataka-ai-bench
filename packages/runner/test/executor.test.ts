@@ -80,6 +80,7 @@ describe("executeRun", () => {
           request, executionClass: "official-container" as const,
           commandFor: () => [],
           async *exec() { yield { type: "exit" as const, exitCode: 0 }; },
+          async cancel() {},
           async dispose() {},
         } satisfies IsolatedWorkspace;
       },
@@ -118,6 +119,7 @@ describe("executeRun", () => {
           request, executionClass: "official-container" as const,
           commandFor: () => [],
           async *exec() { yield { type: "exit" as const, exitCode: 0 }; },
+          async cancel() {},
           async dispose() {},
         } satisfies IsolatedWorkspace;
       },
@@ -154,6 +156,7 @@ describe("executeRun", () => {
             receivedEnvironment = command.env;
             yield { type: "exit" as const, exitCode: 0 };
           },
+          async cancel() {},
           async dispose() {},
         } satisfies IsolatedWorkspace;
       },
@@ -214,6 +217,44 @@ describe("executeRun", () => {
     });
 
     expect(result).toMatchObject({ status: "TIMEOUT", failure: { classification: "TIMEOUT" } });
+  });
+
+  test("propagates a timeout cancellation from OpenCode to the isolated workspace", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
+    let cancelExecution: (() => Promise<void>) | undefined;
+    let releaseExecution: (() => void) | undefined;
+    let workspaceCancellationCalls = 0;
+    const adapter: AgentAdapter = {
+      name: "opencode",
+      async preflight() { return { ok: true, adapter: "opencode", version: "1", diagnostics: [] }; },
+      async *start(context) {
+        cancelExecution = context.cancelExecution;
+        await new Promise<void>((resolve) => { releaseExecution = resolve; });
+        yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "cancelled", exitCode: 143 };
+      },
+      async cancel() { await cancelExecution?.(); },
+    };
+    const isolation: IsolationProvider = {
+      async prepare(request) {
+        return {
+          request,
+          executionClass: "official-container" as const,
+          commandFor: () => [],
+          async *exec() { yield { type: "exit" as const, exitCode: 0 }; },
+          async cancel() {
+            workspaceCancellationCalls += 1;
+            releaseExecution?.();
+          },
+          async dispose() {},
+        } satisfies IsolatedWorkspace;
+      },
+    };
+
+    const result = await executeRun({ store, run, prompt: "Build.", timeoutMs: 10, adapter, isolation, isolationRequest: isolationRequest(root, run.runId) });
+
+    expect(result).toMatchObject({ status: "TIMEOUT", failure: { classification: "TIMEOUT" } });
+    expect(workspaceCancellationCalls).toBe(1);
   });
 
   test("cleans the workspace after an adapter infrastructure error", async () => {

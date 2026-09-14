@@ -48,9 +48,11 @@ class NativeWorkspace implements IsolatedWorkspace {
 
   async dispose(): Promise<void> {
     this.#disposed = true;
-    await terminateChildren(this.#children);
+    await this.cancel();
     await rm(this.request.workspacePath, { recursive: true, force: true });
   }
+
+  async cancel(): Promise<void> { await terminateChildren(this.#children); }
 
   #assertActive(): void {
     if (this.#disposed) throw new Error("isolated workspace has been disposed");

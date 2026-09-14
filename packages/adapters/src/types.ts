@@ -57,6 +57,7 @@ export type AdapterContext = {
   commandExecutor?: (command: { executable: string; args: string[]; cwd?: string; env?: Record<string, string> }) => AsyncIterable<
     { type: "stdout" | "stderr"; data: string } | { type: "exit"; exitCode: number | null }
   >;
+  cancelExecution?: () => Promise<void>;
   rawEventSink?: (event: unknown) => Promise<void>;
 };
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -52,6 +52,30 @@ describe("Docker isolation contract", () => {
     expect(command).toContain(`type=bind,src=${workspace.request.fixturesPath},dst=/fixtures,readonly`);
     expect(command).toContain(`type=bind,src=${workspace.request.outputPath},dst=/output`);
     expect(command.join(" ")).not.toContain("docker.sock");
+  });
+
+  test("assigns the agent container a deterministic name for timeout cancellation", async () => {
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
+    const workspace = await isolation.prepare(request({ runId: "20260914T153808Z-timeout-test" }));
+    const command = workspace.commandFor({ executable: "agent", args: ["run"] });
+
+    expect(command).toContain("--name");
+    expect(command).toContain("aibench-agent-20260914T153808Z-timeout-test");
+  });
+
+  test("stops the named agent container when cancellation is requested", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-docker-stop-"));
+    temporaryDirectories.push(root);
+    const log = join(root, "docker.log");
+    const docker = join(root, "docker");
+    writeFileSync(docker, `#!/bin/sh\nprintf '%s\\n' "$@" > '${log}'\n`);
+    chmodSync(docker, 0o755);
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test", dockerExecutable: docker });
+    const workspace = await isolation.prepare(request({ runId: "20260914T153808Z-timeout-test" }));
+
+    await workspace.cancel();
+
+    expect(readFileSync(log, "utf8")).toBe("stop\n--time\n10\naibench-agent-20260914T153808Z-timeout-test\n");
   });
 
   test("provides only ephemeral XDG state directories required by OpenCode", async () => {
@@ -173,6 +197,23 @@ describe("Docker isolation contract", () => {
     expect(readFileSync(join(workspace.request.outputPath, "result.txt"), "utf8")).toBe("ok");
     expect(existsSync(workspace.request.workspacePath)).toBe(false);
   });
+
+  test.runIf(process.env.AIBENCH_DOCKER_TESTS === "1")("stops a long-running agent container when cancelled", async () => {
+    const isolation = new DockerIsolationProvider({
+      image: process.env.AIBENCH_DOCKER_IMAGE ?? "aibench/agent-runner:local",
+    });
+    const workspace = await isolation.prepare(request({ runId: "20260914T153808Z-timeout-integration" }));
+    const execution = workspace.exec({ executable: "sh", args: ["-c", "printf started; sleep 30"] })[Symbol.asyncIterator]();
+
+    await expect(execution.next()).resolves.toMatchObject({ value: { type: "stdout", data: "started" } });
+    await workspace.cancel();
+    const stopped = await Promise.race([
+      execution.next(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("agent container was not stopped")), 12_000)),
+    ]);
+    expect(stopped).toMatchObject({ value: { type: "exit" } });
+    await workspace.dispose();
+  }, 15_000);
 });
 
 describe("native isolation contract", () => {

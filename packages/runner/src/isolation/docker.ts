@@ -72,7 +72,7 @@ class DockerWorkspace implements IsolatedWorkspace {
     this.#assertActive();
     const passedEnvironment = Object.keys(command.env ?? {}).sort().flatMap((name) => ["--env", name]);
     return [
-      this.#dockerExecutable, "run", "--rm", "--read-only",
+      this.#dockerExecutable, "run", "--rm", "--name", this.#containerName(), "--read-only",
       "--tmpfs", "/home/aibench/.local:uid=10001,gid=10001,mode=700",
       "--tmpfs", "/home/aibench/.cache:uid=10001,gid=10001,mode=700",
       "--tmpfs", "/home/aibench/.config:uid=10001,gid=10001,mode=700",
@@ -114,10 +114,25 @@ class DockerWorkspace implements IsolatedWorkspace {
 
   async dispose(): Promise<void> {
     this.#disposed = true;
-    for (const child of this.#children) child.kill("SIGTERM");
+    await this.cancel();
     await this.#networkLease?.dispose();
     await this.#preserveWorkspace();
     await rm(this.request.workspacePath, { recursive: true, force: true });
+  }
+
+  async cancel(): Promise<void> {
+    await this.#stopContainer();
+    for (const child of this.#children) child.kill("SIGTERM");
+  }
+
+  #containerName(): string { return `aibench-agent-${this.request.runId}`; }
+
+  async #stopContainer(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const child = spawn(this.#dockerExecutable, ["stop", "--time", "10", this.#containerName()], { stdio: "ignore" });
+      child.once("error", () => resolve());
+      child.once("close", () => resolve());
+    });
   }
 
   async #preserveWorkspace(): Promise<void> {

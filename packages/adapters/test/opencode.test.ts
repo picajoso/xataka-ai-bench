@@ -71,4 +71,30 @@ describe("OpenCodeAdapter", () => {
     expect(commands).toEqual([{ executable: "opencode", args: ["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--title", "Xataka AI Bench run", "--dir", "/workspace", "--model", "ninfer/qwen3.8-27b", "test"] }]);
     expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success" });
   });
+
+  test("cancels an isolated execution through its supplied callback", async () => {
+    let releaseExecution: (() => void) | undefined;
+    let cancellationCalls = 0;
+    const adapter = new OpenCodeAdapter({ executable: "opencode", model: "ninfer/qwen3.8-27b" });
+
+    const execution = adapter.start({
+      runId: "run-1",
+      prompt: "test",
+      workspaceRoot: "/workspace",
+      environment: {},
+      commandExecutor: async function* () {
+        await new Promise<void>((resolve) => { releaseExecution = resolve; });
+        yield { type: "exit" as const, exitCode: 143 };
+      },
+      cancelExecution: async () => { cancellationCalls += 1; },
+    } as Parameters<typeof adapter.start>[0])[Symbol.asyncIterator]();
+
+    const pending = execution.next();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await adapter.cancel("first-shot timeout");
+
+    expect(cancellationCalls).toBe(1);
+    releaseExecution?.();
+    await pending;
+  });
 });
