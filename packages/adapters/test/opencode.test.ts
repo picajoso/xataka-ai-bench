@@ -15,7 +15,7 @@ describe("OpenCode JSON normalization", () => {
 describe("OpenCode command construction", () => {
   test("pins model and reasoning variant without automatic permission approval", () => {
     const command = buildOpenCodeCommand({ executable: "opencode", workspaceRoot: "/workspace", prompt: "Build it.", model: "lmstudio/qwen3.8-27b", variant: "max" });
-    expect(command.args).toEqual(["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--dir", "/workspace", "--model", "lmstudio/qwen3.8-27b", "--variant", "max", "Build it."]);
+    expect(command.args).toEqual(["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--title", "Xataka AI Bench run", "--dir", "/workspace", "--model", "lmstudio/qwen3.8-27b", "--variant", "max", "Build it."]);
     expect(command.args).not.toContain("--auto");
   });
 });
@@ -68,7 +68,7 @@ describe("OpenCodeAdapter", () => {
       },
     })) events.push(event);
 
-    expect(commands).toEqual([{ executable: "opencode", args: ["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--dir", "/workspace", "--model", "ninfer/qwen3.8-27b", "test"] }]);
+    expect(commands).toEqual([{ executable: "opencode", args: ["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--title", "Xataka AI Bench run", "--dir", "/workspace", "--model", "ninfer/qwen3.8-27b", "test"] }]);
     expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success" });
   });
 });
