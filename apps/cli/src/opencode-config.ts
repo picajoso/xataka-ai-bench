@@ -39,3 +39,19 @@ export function validateOpenCodeIdentity(
     throw new Error("Private OpenCode variant does not match the public system reasoning setting");
   }
 }
+
+export function validateOpenCodeConfigModel(model: string, contents: string): void {
+  const [providerId, modelId, ...rest] = model.split("/");
+  if (!providerId || !modelId || rest.length > 0) throw new Error("OpenCode model must use provider/model format");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contents);
+  } catch {
+    throw new Error("Private OpenCode configuration must be valid JSON");
+  }
+  const provider = record(record(parsed)?.provider)?.[providerId];
+  const models = record(record(provider)?.models);
+  if (!models || !Object.hasOwn(models, modelId)) {
+    throw new Error("Private OpenCode configuration does not expose the selected model");
+  }
+}

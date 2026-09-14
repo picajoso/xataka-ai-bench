@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "../src/opencode-config.js";
+import { validateOpenCodeConfigModel, validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "../src/opencode-config.js";
 
 const valid = JSON.stringify({
   provider: {
@@ -47,5 +47,21 @@ describe("OpenCode execution identity", () => {
   test("rejects a divergent or absent private variant", () => {
     expect(() => validateOpenCodeIdentity({ ...profile, variant: "off" }, system)).toThrow(/variant/i);
     expect(() => validateOpenCodeIdentity({ ...profile, variant: null }, system)).toThrow(/variant/i);
+  });
+});
+
+describe("OpenCode config model identity", () => {
+  const configWithPlaceholderModel = JSON.stringify({
+    provider: {
+      ninfer: {
+        options: { baseURL: "http://inference.local:8080/v1", apiKey: "{env:NINFER_API_KEY}" },
+        models: { "replace-with-model-id": {} },
+      },
+    },
+  });
+
+  test("requires the private config to expose the exact selected provider/model", () => {
+    expect(() => validateOpenCodeConfigModel("ninfer/qwen3.8-27b-nvfp4", configWithPlaceholderModel)).toThrow(/model/i);
+    expect(validateOpenCodeConfigModel("ninfer/qwen3.8-27b-nvfp4", configWithPlaceholderModel.replace("replace-with-model-id", "qwen3.8-27b-nvfp4"))).toBeUndefined();
   });
 });

@@ -5,7 +5,7 @@ import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
-import { validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "./opencode-config.js";
+import { validateOpenCodeConfigModel, validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "./opencode-config.js";
 
 export type CliResult = { exitCode: number; output: string };
 export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
@@ -71,7 +71,9 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
   if (!profile.opencodeConfigPath) throw new Error(`Private OpenCode configuration path is required for ${planned.systemSlug}`);
   const configPath = await realpath(resolve(dirname(profilesPath), profile.opencodeConfigPath));
   await access(configPath);
-  validatePrivateOpenCodeConfig(await readFile(configPath, "utf8"));
+  const config = await readFile(configPath, "utf8");
+  validatePrivateOpenCodeConfig(config);
+  validateOpenCodeConfigModel(profile.model, config);
   validateOpenCodeIdentity(profile, system.profile);
   const environment = Object.fromEntries(profile.environmentVariables.map((name) => {
     const value = process.env[name];
