@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { validatePrivateOpenCodeConfig } from "../src/opencode-config.js";
+import { validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "../src/opencode-config.js";
 
 const valid = JSON.stringify({
   provider: {
@@ -25,5 +25,27 @@ describe("private OpenCode configuration", () => {
   test("rejects a missing baseURL and a literal credential", () => {
     expect(() => validatePrivateOpenCodeConfig(JSON.stringify({ provider: { ninfer: { options: { apiKey: "{env:NINFER_API_KEY}" } } } }))).toThrow(/baseURL/);
     expect(() => validatePrivateOpenCodeConfig(valid.replace("{env:NINFER_API_KEY}", "literal-secret"))).toThrow(/apiKey/);
+  });
+});
+
+describe("OpenCode execution identity", () => {
+  const system = { inference: { parameters: { opencodeModel: "ninfer/qwen3.8-27b-nvfp4" }, reasoning: "medium" as const } };
+  const profile = { model: "ninfer/qwen3.8-27b-nvfp4", variant: "medium" };
+
+  test("accepts a public slug identity matched by model and reasoning variant", () => {
+    expect(validateOpenCodeIdentity(profile, system)).toBeUndefined();
+  });
+
+  test("rejects a divergent private model", () => {
+    expect(() => validateOpenCodeIdentity({ ...profile, model: "ninfer/other-model" }, system)).toThrow(/model/i);
+  });
+
+  test("rejects a public system without an OpenCode model declaration", () => {
+    expect(() => validateOpenCodeIdentity(profile, { inference: { parameters: {}, reasoning: "unknown" } })).toThrow(/opencodeModel/);
+  });
+
+  test("rejects a divergent or absent private variant", () => {
+    expect(() => validateOpenCodeIdentity({ ...profile, variant: "off" }, system)).toThrow(/variant/i);
+    expect(() => validateOpenCodeIdentity({ ...profile, variant: null }, system)).toThrow(/variant/i);
   });
 });

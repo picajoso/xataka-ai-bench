@@ -23,3 +23,19 @@ export function validatePrivateOpenCodeConfig(contents: string): void {
     }
   }
 }
+
+export function validateOpenCodeIdentity(
+  profile: { model: string; variant: string | null },
+  system: { inference: { parameters: Record<string, unknown>; reasoning: string } },
+): void {
+  const declaredModel = system.inference.parameters.opencodeModel;
+  if (typeof declaredModel !== "string" || !declaredModel.trim()) {
+    throw new Error("Public system profile requires inference.parameters.opencodeModel for OpenCode execution");
+  }
+  if (profile.model !== declaredModel) {
+    throw new Error("Private OpenCode model does not match the public system profile");
+  }
+  if (system.inference.reasoning !== "unknown" && profile.variant !== system.inference.reasoning) {
+    throw new Error("Private OpenCode variant does not match the public system reasoning setting");
+  }
+}

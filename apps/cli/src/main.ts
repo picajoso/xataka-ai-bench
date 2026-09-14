@@ -5,7 +5,7 @@ import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
-import { validatePrivateOpenCodeConfig } from "./opencode-config.js";
+import { validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "./opencode-config.js";
 
 export type CliResult = { exitCode: number; output: string };
 export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
@@ -72,6 +72,7 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
   const configPath = await realpath(resolve(dirname(profilesPath), profile.opencodeConfigPath));
   await access(configPath);
   validatePrivateOpenCodeConfig(await readFile(configPath, "utf8"));
+  validateOpenCodeIdentity(profile, system.profile);
   const environment = Object.fromEntries(profile.environmentVariables.map((name) => {
     const value = process.env[name];
     if (!value) throw new Error(`Required private environment variable is unavailable: ${name}`);
