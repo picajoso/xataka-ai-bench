@@ -31,7 +31,7 @@ export function buildOpenCodeCommand(options: OpenCodeCommandOptions): { executa
   }
   return {
     executable: options.executable,
-    args: ["run", "--format", "json", "--dir", options.workspaceRoot, "--model", options.model,
+    args: ["run", "--format", "json", "--print-logs", "--log-level", "ERROR", "--dir", options.workspaceRoot, "--model", options.model,
       ...(options.variant ? ["--variant", options.variant] : []), options.prompt],
   };
 }

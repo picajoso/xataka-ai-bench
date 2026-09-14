@@ -6,6 +6,9 @@ RUN groupadd --gid 10001 aibench \
   && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin aibench \
   && mkdir -p /workspace /output \
   && chown -R aibench:aibench /workspace /output \
+  && apt-get update \
+  && apt-get install --yes --no-install-recommends ripgrep \
+  && rm -rf /var/lib/apt/lists/* \
   && test -n "$OPENCODE_VERSION" \
   && npm install --global "opencode-ai@$OPENCODE_VERSION" \
   && opencode --version

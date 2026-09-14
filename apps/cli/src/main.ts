@@ -96,7 +96,7 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
   await executeRun({
     store, run, prompt, timeoutMs: loaded.definition.limits.firstShotSeconds * 1000,
     adapter: new OpenCodeAdapter({ executable: system.profile.agent.executable, model: profile.model, ...(profile.variant ? { variant: profile.variant } : {}) }),
-    isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:opencode-1.18.30" }),
+    isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:opencode-1.18.30-rg1" }),
     isolationRequest: {
       runId: run.runId, executionClass: "official-container", storageRoot: dirname(paths.dataRoot), fixturesPath: loaded.directory,
       workspacePath: join(paths.workspaceRoot, run.runId), outputPath: join(paths.reviewRoot, run.runId), privateConfigPath: configPath,

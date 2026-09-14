@@ -84,8 +84,8 @@ El diseño fuente está en `docs/superpowers/specs/2026-09-11-xataka-ai-bench-de
 - Planificación persistente y runs inmutables con estados, eventos JSONL y hashes.
 - Adaptadores Fake, Codex y OpenCode. El CLI ya conecta OpenCode real solo tras `--confirm`, un plan oficial unitario y un perfil/configuración privados válidos; Codex sigue pendiente de una imagen oficial. Jamás puede caer en el runner fake.
 - Aislamiento Docker oficial; preflight de adaptadores dentro del contenedor. Solo se pasan los nombres de variables autorizadas, no sus valores en argumentos ni logs.
-- Imagen local construida: `aibench/agent-runner:opencode-1.18.30`.
-- El primer flujo real de OpenCode está conectado a la CLI, pero no existe aún un perfil privado real ni se ha autorizado una ejecución de modelo.
+- Imagen oficial requerida para OpenCode: `aibench/agent-runner:opencode-1.18.30-rg1`; incluye `ripgrep` para evitar descargas durante ejecuciones aisladas.
+- El flujo real de OpenCode está conectado a la CLI y usa perfiles/configuración privados validados antes de crear un run. Los resultados oficiales sólo se lanzan explícitamente con `--confirm`.
 - La red oficial ya se aplica por run: agente en red interna efímera, proxy TCP de destino único y preflight con handshake que comprueba el destino real y el control prohibido. `blocked` conserva `--network none`. La imagen local `aibench/network-proxy:1.0.1` está construida; la evidencia registra versión y hash de allow-list, nunca destinos.
 
 ### Evaluación y legacy
