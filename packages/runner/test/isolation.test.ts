@@ -54,6 +54,17 @@ describe("Docker isolation contract", () => {
     expect(command.join(" ")).not.toContain("docker.sock");
   });
 
+  test("provides only ephemeral XDG state directories required by OpenCode", async () => {
+    const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
+    const workspace = await isolation.prepare(request());
+    const command = workspace.commandFor({ executable: "opencode", args: ["--version"] });
+
+    expect(command).toContain("--tmpfs");
+    expect(command).toContain("/home/aibench/.local:uid=10001,gid=10001,mode=700");
+    expect(command).toContain("/home/aibench/.cache:uid=10001,gid=10001,mode=700");
+    expect(command).toContain("/home/aibench/.config:uid=10001,gid=10001,mode=700");
+  });
+
   test("translates the blocked policy to Docker's no-network mode", async () => {
     const isolation = new DockerIsolationProvider({ image: "aibench/agent-runner:test" });
     const workspace = await isolation.prepare(request({ networkPolicy: "blocked" }));
