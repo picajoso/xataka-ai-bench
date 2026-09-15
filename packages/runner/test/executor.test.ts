@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -175,6 +175,31 @@ describe("executeRun", () => {
     const { root, store } = setup();
     const run = await store.createRun(plan);
     const request = isolationRequest(root, run.runId);
+    const adapter: AgentAdapter = {
+      name: "artifact-writer",
+      async preflight() { return { ok: true, adapter: "artifact-writer", version: "1", diagnostics: [] }; },
+      async *start() {
+        writeFileSync(join(request.workspacePath, "result.txt"), "reviewable result\n");
+        yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "success", exitCode: 0 };
+      },
+      async cancel() {},
+    };
+
+    const result = await executeRun({
+      store, run, prompt: "Build the smoke fixture.", timeoutMs: 100,
+      adapter,
+      isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:test" }),
+      isolationRequest: request,
+    });
+
+    expect(result.status).toBe("READY_FOR_REVIEW");
+    expect((await store.loadRun(run.runId)).status).toBe("READY_FOR_REVIEW");
+    expect(existsSync(request.workspacePath)).toBe(false);
+  });
+
+  test("rejects a successful agent session that leaves no reviewable artifact", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
 
     const result = await executeRun({
       store, run, prompt: "Build the smoke fixture.", timeoutMs: 100,
@@ -183,12 +208,10 @@ describe("executeRun", () => {
         { type: "session.finished", outcome: "success", exitCode: 0 },
       ] }),
       isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:test" }),
-      isolationRequest: request,
+      isolationRequest: isolationRequest(root, run.runId),
     });
 
-    expect(result.status).toBe("READY_FOR_REVIEW");
-    expect((await store.loadRun(run.runId)).status).toBe("READY_FOR_REVIEW");
-    expect(existsSync(request.workspacePath)).toBe(false);
+    expect(result).toMatchObject({ status: "FAILED", failure: { classification: "VALIDATION_FAILURE" } });
   });
 
   test("records a failed preflight as infrastructure failure", async () => {

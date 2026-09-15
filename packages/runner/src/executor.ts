@@ -1,5 +1,6 @@
 import type { AgentAdapter } from "@aibench/adapters";
 import type { RunManifest } from "@aibench/contracts";
+import { readdir } from "node:fs/promises";
 import type { IsolationProvider, IsolationRequest, IsolatedWorkspace } from "./isolation/types.js";
 import { verifyNetworkIsolation } from "./network/preflight.js";
 import { RunStore, type RunHandle } from "./run-store.js";
@@ -18,6 +19,14 @@ export type ExecuteRunOptions = {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown runner error";
+}
+
+async function hasReviewableArtifact(directory: string): Promise<boolean> {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.isFile()) return true;
+    if (entry.isDirectory() && await hasReviewableArtifact(`${directory}/${entry.name}`)) return true;
+  }
+  return false;
 }
 
 export async function executeRun(options: ExecuteRunOptions): Promise<RunManifest> {
@@ -104,6 +113,14 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
     if (outcome === "success" && exitCode === 0) {
       phase = "VALIDATING";
       await options.store.transition(options.run.runId, phase);
+      const hasOutput = await hasReviewableArtifact(activeWorkspace.request.workspacePath)
+        || await hasReviewableArtifact(activeWorkspace.request.outputPath);
+      if (!hasOutput) {
+        return await options.store.transition(options.run.runId, "FAILED", {
+          classification: "VALIDATION_FAILURE",
+          summary: "Agent session completed without producing a reviewable artifact",
+        });
+      }
       return await options.store.transition(options.run.runId, "READY_FOR_REVIEW");
     }
     return await options.store.transition(options.run.runId, "FAILED", {
