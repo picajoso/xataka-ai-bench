@@ -14,6 +14,7 @@ export type OpenCodeCommandOptions = {
 };
 
 export type OpenCodeOutput = { stream: "stdout" | "stderr"; data: string };
+type OpenCodeProcessOutput = OpenCodeOutput | { stream: "exit"; exitCode: number | null };
 export type OpenCodeLaunch = { output(): AsyncIterable<OpenCodeOutput>; cancel(reason: string): Promise<void> };
 export type OpenCodeAdapterOptions = Omit<OpenCodeCommandOptions, "workspaceRoot" | "prompt"> & {
   clock?: () => Date;
@@ -89,10 +90,11 @@ async function isolatedVersion(context: AdapterContext, executable: string): Pro
   return version;
 }
 
-async function* isolatedOutput(context: AdapterContext, command: { executable: string; args: string[] }): AsyncIterable<OpenCodeOutput> {
+async function* isolatedOutput(context: AdapterContext, command: { executable: string; args: string[] }): AsyncIterable<OpenCodeProcessOutput> {
   if (!context.commandExecutor) return;
   for await (const event of context.commandExecutor(command)) {
     if (event.type === "stdout" || event.type === "stderr") yield { stream: event.type, data: event.data };
+    if (event.type === "exit") yield { stream: "exit", exitCode: event.exitCode };
   }
 }
 
@@ -124,14 +126,31 @@ export class OpenCodeAdapter implements AgentAdapter {
     this.#active = launch;
     this.#cancelExecution = context.cancelExecution;
     const clock = this.#options.clock ?? (() => new Date());
+    let sessionFinished = false;
     try {
       for await (const chunk of context.commandExecutor ? isolatedOutput(context, command) : launch!.output()) {
-        await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
         const timestamp = clock().toISOString();
+        if (chunk.stream === "exit") {
+          if (!sessionFinished) {
+            yield {
+              type: "session.finished",
+              timestamp,
+              outcome: chunk.exitCode === 0 ? "success" : "failed",
+              exitCode: chunk.exitCode,
+            };
+          }
+          continue;
+        }
+        await context.rawEventSink?.({ adapter: this.name, stream: chunk.stream, data: redact(chunk.data) });
         if (chunk.stream === "stderr") {
           for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) yield { type: "diagnostic", timestamp, stream: "stderr", level: "warning", message: redact(line) };
         } else {
-          for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) yield* normalizeOpenCodeJsonLine(line, timestamp);
+          for (const line of chunk.data.split(/\r?\n/).filter(Boolean)) {
+            for (const event of normalizeOpenCodeJsonLine(line, timestamp)) {
+              if (event.type === "session.finished") sessionFinished = true;
+              yield event;
+            }
+          }
         }
       }
     } finally {

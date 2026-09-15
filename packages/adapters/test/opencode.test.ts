@@ -72,6 +72,21 @@ describe("OpenCodeAdapter", () => {
     expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success" });
   });
 
+  test("reports success when an isolated OpenCode process exits zero without an idle event", async () => {
+    const adapter = new OpenCodeAdapter({ executable: "opencode", model: "ninfer/qwen3.8-27b" });
+    const events = [];
+
+    for await (const event of adapter.start({
+      runId: "run-1", prompt: "test", workspaceRoot: "/workspace", environment: {},
+      commandExecutor: async function* () {
+        yield { type: "stderr" as const, data: "non-fatal catalogue warning\n" };
+        yield { type: "exit" as const, exitCode: 0 };
+      },
+    })) events.push(event);
+
+    expect(events.at(-1)).toMatchObject({ type: "session.finished", outcome: "success", exitCode: 0 });
+  });
+
   test("cancels an isolated execution through its supplied callback", async () => {
     let releaseExecution: (() => void) | undefined;
     let cancellationCalls = 0;
