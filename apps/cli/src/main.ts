@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
+import { validateBrowserGameOutput } from "@aibench/evaluation";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
 import { validateOpenCodeConfigModel, validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "./opencode-config.js";
 
@@ -103,6 +104,7 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
       networkPolicy: loaded.definition.network.policy, privateEndpoints: endpoint ? [endpoint] : [], proxyVersion: "1.0.1", limits: { cpu: 2, memoryMb: 4096, pids: 256 },
     },
     environment: { ...environment, OPENCODE_CONFIG: "/aibench/opencode.json" },
+    ...(loaded.definition.category === "browser-game" ? { outputValidator: validateBrowserGameOutput } : {}),
   });
   return run.runId;
 }

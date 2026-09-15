@@ -23,6 +23,8 @@ Todo el contenido visual necesario debe generarse mediante código.
 
 Puedes elegir libremente las tecnologías y estructura del proyecto, pero no instales dependencias ni accedas a la red para obtener código, bibliotecas ni assets. Todo debe funcionar sin conexión, usando únicamente lo disponible en el entorno y el contenido que generes localmente.
 
+Guarda el proyecto final en la raíz del workspace. `index.html` debe ser su punto de entrada y cualquier archivo local que referencie (JavaScript o CSS) debe entregarse junto a él.
+
 El resultado debe ser realmente jugable, no simplemente una demostración visual.
 
 Antes de finalizar:

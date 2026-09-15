@@ -214,6 +214,33 @@ describe("executeRun", () => {
     expect(result).toMatchObject({ status: "FAILED", failure: { classification: "VALIDATION_FAILURE" } });
   });
 
+  test("rejects a successful agent session whose declared output validator fails", async () => {
+    const { root, store } = setup();
+    const run = await store.createRun(plan);
+    const request = isolationRequest(root, run.runId);
+    const adapter: AgentAdapter = {
+      name: "artifact-writer",
+      async preflight() { return { ok: true, adapter: "artifact-writer", version: "1", diagnostics: [] }; },
+      async *start() {
+        writeFileSync(join(request.workspacePath, "index.html"), '<script src="missing.js"></script>');
+        yield { type: "session.finished", timestamp: new Date().toISOString(), outcome: "success", exitCode: 0 };
+      },
+      async cancel() {},
+    };
+
+    const result = await executeRun({
+      store, run, prompt: "Build the smoke fixture.", timeoutMs: 100, adapter,
+      isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:test" }),
+      isolationRequest: request,
+      outputValidator: async () => "Missing local resource: missing.js",
+    });
+
+    expect(result).toMatchObject({
+      status: "FAILED",
+      failure: { classification: "VALIDATION_FAILURE", summary: "Missing local resource: missing.js" },
+    });
+  });
+
   test("records a failed preflight as infrastructure failure", async () => {
     const { root, store } = setup();
     const run = await store.createRun(plan);

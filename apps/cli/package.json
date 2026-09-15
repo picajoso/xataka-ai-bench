@@ -13,6 +13,7 @@
     "@aibench/adapters": "workspace:*",
     "@aibench/config": "workspace:*",
     "@aibench/contracts": "workspace:*",
+    "@aibench/evaluation": "workspace:*",
     "@aibench/publisher": "workspace:*",
     "@aibench/runner": "workspace:*"
   }

@@ -15,6 +15,7 @@ export type ExecuteRunOptions = {
   isolation: IsolationProvider;
   isolationRequest: IsolationRequest;
   environment?: Readonly<Record<string, string>>;
+  outputValidator?: (workspacePath: string) => Promise<string | null>;
 };
 
 function message(error: unknown): string {
@@ -119,6 +120,13 @@ export async function executeRun(options: ExecuteRunOptions): Promise<RunManifes
         return await options.store.transition(options.run.runId, "FAILED", {
           classification: "VALIDATION_FAILURE",
           summary: "Agent session completed without producing a reviewable artifact",
+        });
+      }
+      const validationFailure = await options.outputValidator?.(activeWorkspace.request.workspacePath);
+      if (validationFailure) {
+        return await options.store.transition(options.run.runId, "FAILED", {
+          classification: "VALIDATION_FAILURE",
+          summary: validationFailure,
         });
       }
       return await options.store.transition(options.run.runId, "READY_FOR_REVIEW");
