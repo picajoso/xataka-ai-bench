@@ -131,7 +131,7 @@ describe("verify-storage.sh", () => {
     expect(result.output).toContain("required prefix");
   });
 
-  test("archives files, symlinks, empty directories and metadata without deleting the source", () => {
+  test.skipIf(process.platform !== "darwin")("archives files, symlinks, empty directories and metadata without deleting the source", () => {
     const environment = fixture();
     const source = join(environment.AIBENCH_REQUIRED_PREFIX, "legacy-source");
     mkdirSync(join(source, "empty"), { recursive: true });

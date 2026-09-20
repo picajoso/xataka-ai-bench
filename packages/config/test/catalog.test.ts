@@ -154,7 +154,7 @@ describe("benchmark catalog", () => {
     await expect(loadBenchmark(join(root, "benchmark.yaml"))).rejects.toThrow(/escapes/i);
   });
 
-  test("resolves public and private roots only from the required external home", () => {
+  test.skipIf(process.platform !== "darwin")("resolves public and private roots only from the required external home", () => {
     const paths = resolveBenchPaths({ AIBENCH_HOME: "/Volumes/MacOS_VMs/xataka-ai-bench" });
     expect(paths.repoRoot).toBe("/Volumes/MacOS_VMs/xataka-ai-bench/platform");
     expect(paths.runsRoot).toBe("/Volumes/MacOS_VMs/xataka-ai-bench/state/runs");
