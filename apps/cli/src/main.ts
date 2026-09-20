@@ -4,12 +4,12 @@ import { dirname, join, resolve } from "node:path";
 import { FakeAdapter, OpenCodeAdapter } from "@aibench/adapters";
 import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
 import { createBatchPlan, DockerIsolationProvider, parsePrivateEndpoint, PlanStore, RunStore, executeRun } from "@aibench/runner";
-import { validateBrowserGameOutput } from "@aibench/evaluation";
+import { buildRepairPrompt, prepareRepairRun, validateBrowserGameOutput } from "@aibench/evaluation";
 import { approveCandidate, buildReviewedCandidate, loadApprovalRecord, saveApprovalRecord, stageApprovedCandidate } from "@aibench/publisher";
 import { validateOpenCodeConfigModel, validateOpenCodeIdentity, validatePrivateOpenCodeConfig } from "./opencode-config.js";
 
 export type CliResult = { exitCode: number; output: string };
-export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
+export type CliDependencies = { doctor?: () => unknown; list?: () => string[]; plan?: () => string; run?: () => string | Promise<string>; repair?: (runId: string) => string | Promise<string>; status?: (runId: string) => unknown | Promise<unknown>; review?: (candidateId: string) => unknown | Promise<unknown>; publish?: (candidateId: string) => unknown | Promise<unknown> };
 
 function flagValue(flags: string[], name: string): string | undefined {
   const index = flags.indexOf(name);
@@ -109,6 +109,70 @@ async function runOfficialOpenCode(planId: string): Promise<string> {
   return run.runId;
 }
 
+async function repairOfficialOpenCode(parentRunId: string): Promise<string> {
+  const paths = resolveBenchPaths();
+  const store = new RunStore({ runsRoot: paths.runsRoot });
+  const parentManifest = await store.loadRun(parentRunId);
+  if (parentManifest.attempt.kind !== "first-shot") throw new Error("Only first-shot runs can be repaired");
+  if (parentManifest.status !== "FAILED" || parentManifest.failure?.classification !== "VALIDATION_FAILURE") {
+    throw new Error("Only first-shot runs with objective validation failures can be repaired");
+  }
+  const benchmarkPath = join(paths.repoRoot, "benchmarks", parentManifest.benchmark.slug, "benchmark.yaml");
+  const loaded = await loadBenchmark(benchmarkPath);
+  if (loaded.definitionHash !== parentManifest.benchmark.definitionHash || loaded.definition.category !== "browser-game") {
+    throw new Error("Repair requires the original immutable browser benchmark definition");
+  }
+  const system = await loadSystemProfile(join(paths.repoRoot, "systems", parentManifest.system.slug, "system.yaml"));
+  if (system.profileHash !== parentManifest.system.profileHash) throw new Error("Repair requires the original immutable system profile");
+  const profilesPath = join(paths.dataRoot, "execution-profiles.yaml");
+  const profile = (await loadExecutionProfiles(profilesPath)).find((candidate) => candidate.systemSlug === parentManifest.system.slug);
+  if (!profile || profile.adapter !== "opencode") throw new Error(`No private OpenCode execution profile is configured for ${parentManifest.system.slug}`);
+  if (!profile.opencodeConfigPath) throw new Error(`Private OpenCode configuration path is required for ${parentManifest.system.slug}`);
+  const configPath = await realpath(resolve(dirname(profilesPath), profile.opencodeConfigPath));
+  await access(configPath);
+  const config = await readFile(configPath, "utf8");
+  validatePrivateOpenCodeConfig(config);
+  validateOpenCodeConfigModel(profile.model, config);
+  validateOpenCodeIdentity(profile, system.profile);
+  const environment = Object.fromEntries(profile.environmentVariables.map((name) => {
+    const value = process.env[name];
+    if (!value) throw new Error(`Required private environment variable is unavailable: ${name}`);
+    return [name, value];
+  }));
+  if (loaded.definition.network.policy === "custom") throw new Error("Custom network policies are not executable by the official Docker runner yet");
+  const endpoint = ["local-endpoint", "package-registries-and-local-endpoint"].includes(loaded.definition.network.policy)
+    ? profile.endpoint ? parsePrivateEndpoint(profile.endpoint) : (() => { throw new Error(`A private endpoint is required for ${parentManifest.system.slug}`); })()
+    : undefined;
+  const locale = loaded.definition.prompts.canonical.locale;
+  const originalPrompt = await readFile(join(loaded.directory, loaded.definition.prompts.canonical.path), "utf8");
+  if (loaded.promptHashes[locale] !== parentManifest.benchmark.promptHash) throw new Error("Repair requires the original immutable benchmark prompt");
+  const prompt = buildRepairPrompt(originalPrompt, [{ validator: "browser", observation: parentManifest.failure.summary }]);
+  const parentOutputPath = join(paths.reviewRoot, parentRunId);
+  await access(parentOutputPath);
+  await Promise.all([mkdir(paths.workspaceRoot, { recursive: true }), mkdir(paths.reviewRoot, { recursive: true })]);
+  const repairWorkspacePath = join(paths.workspaceRoot, `repair-${parentRunId}-${randomBytes(6).toString("hex")}`);
+  const run = await prepareRepairRun({
+    store,
+    parent: { runId: parentRunId, directory: join(paths.runsRoot, parentRunId), manifest: parentManifest },
+    parentManifestPath: join(paths.runsRoot, parentRunId, "manifest.json"),
+    parentOutputPath,
+    repairWorkspacePath,
+  });
+  await executeRun({
+    store, run, prompt, timeoutMs: loaded.definition.limits.repairSeconds * 1000,
+    adapter: new OpenCodeAdapter({ executable: system.profile.agent.executable, model: profile.model, ...(profile.variant ? { variant: profile.variant } : {}) }),
+    isolation: new DockerIsolationProvider({ image: "aibench/agent-runner:opencode-1.18.30-rg1" }),
+    isolationRequest: {
+      runId: run.runId, executionClass: "official-container", storageRoot: dirname(paths.dataRoot), fixturesPath: loaded.directory,
+      workspacePath: repairWorkspacePath, outputPath: join(paths.reviewRoot, run.runId), privateConfigPath: configPath,
+      networkPolicy: loaded.definition.network.policy, privateEndpoints: endpoint ? [endpoint] : [], proxyVersion: "1.0.1", limits: { cpu: 2, memoryMb: 4096, pids: 256 },
+    },
+    environment: { ...environment, OPENCODE_CONFIG: "/aibench/opencode.json" },
+    outputValidator: validateBrowserGameOutput,
+  });
+  return run.runId;
+}
+
 async function reviewPrivateCandidate(candidateId: string, approve: boolean, reviewer: string | undefined): Promise<unknown> {
   const paths = resolveBenchPaths();
   const reviewed = await buildReviewedCandidate(paths.reviewRoot, candidateId);
@@ -168,6 +232,19 @@ export async function runCli(args: string[], dependencies: CliDependencies = {})
       return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `run: ${runId}\n` };
     } catch (error) {
       return { exitCode: 1, output: `run: ${error instanceof Error ? error.message : "unknown error"}\n` };
+    }
+  }
+  if (command === "repair") {
+    const parentRunId = flags.find((flag, index) => !flag.startsWith("--") && flags[index - 1] !== "--adapter");
+    if (!parentRunId) return { exitCode: 2, output: "repair: run id is required\n" };
+    const adapter = flagValue(flags, "--adapter") ?? "opencode";
+    if (adapter !== "opencode") return { exitCode: 2, output: `repair: adapter ${adapter} is not configured for official containers yet\n` };
+    if (!flags.includes("--confirm")) return { exitCode: 2, output: "repair: --confirm is required for a real adapter\n" };
+    try {
+      const runId = await (dependencies.repair ?? repairOfficialOpenCode)(parentRunId);
+      return { exitCode: 0, output: flags.includes("--json") ? `${JSON.stringify({ runId })}\n` : `repair: ${runId}\n` };
+    } catch (error) {
+      return { exitCode: 1, output: `repair: ${error instanceof Error ? error.message : "unknown error"}\n` };
     }
   }
   if (command === "status") {

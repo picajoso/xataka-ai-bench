@@ -69,6 +69,36 @@ describe("aibench run and status", () => {
   });
 });
 
+describe("aibench repair", () => {
+  test("requires explicit confirmation before a repair can start", async () => {
+    const result = await runCli(["repair", "run-parent", "--adapter", "opencode"], {
+      repair: () => "never",
+    });
+
+    expect(result).toEqual({ exitCode: 2, output: "repair: --confirm is required for a real adapter\n" });
+  });
+
+  test("dispatches a confirmed OpenCode repair linked to the supplied first-shot", async () => {
+    let receivedRunId = "";
+    const result = await runCli(["repair", "run-parent", "--adapter", "opencode", "--confirm", "--json"], {
+      repair: (runId: string) => { receivedRunId = runId; return "run-repair-1"; },
+    });
+
+    expect(receivedRunId).toBe("run-parent");
+    expect(result).toEqual({ exitCode: 0, output: '{"runId":"run-repair-1"}\n' });
+  });
+
+  test("does not treat the OpenCode adapter value as the parent run id", async () => {
+    let receivedRunId = "";
+    const result = await runCli(["repair", "--adapter", "opencode", "run-parent", "--confirm"], {
+      repair: (runId: string) => { receivedRunId = runId; return "run-repair-1"; },
+    });
+
+    expect(receivedRunId).toBe("run-parent");
+    expect(result).toEqual({ exitCode: 0, output: "repair: run-repair-1\n" });
+  });
+});
+
 describe("aibench review", () => {
   test("requires a candidate identifier and reports only the review result", async () => {
     await expect(runCli(["review"])).resolves.toEqual({ exitCode: 2, output: "review: candidate id is required\n" });
