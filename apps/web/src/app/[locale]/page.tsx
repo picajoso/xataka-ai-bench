@@ -1,6 +1,8 @@
-import { loadPublicCatalog } from "../../lib/content.js";
+import { getLocalizedSummary, getMessages, loadPublicCatalog, type Locale } from "../../lib/content.js";
 
-export default async function Home() {
+export default async function Home({ params }: Readonly<{ params: Promise<{ locale: Locale }> }>) {
+  const { locale } = await params;
+  const copy = getMessages(locale);
   const catalog = await loadPublicCatalog(process.env.AIBENCH_PUBLISHED_ROOT ?? "../../published");
-  return <main><p className="eyebrow">Xataka AI Bench</p><h1>Pruebas prácticas para sistemas de IA</h1><p>Resultados reproducibles y contexto técnico para comparar el sistema completo: modelo, agente, configuración y entorno.</p><section><h2>Resultados publicados</h2>{catalog.runs.length === 0 ? <p>Todavía no hay resultados publicados.</p> : <ul>{catalog.runs.map((run) => <li key={run.runId}>{run.summary.es}</li>)}</ul>}</section></main>;
+  return <main><p className="eyebrow">Xataka AI Bench</p><h1>{copy.homeTitle}</h1><p>{copy.homeIntro}</p><section><h2>{copy.publishedResults}</h2>{catalog.runs.length === 0 ? <p>{copy.emptyCatalog}</p> : <ul>{catalog.runs.map((run) => <li key={run.runId}>{getLocalizedSummary(run, locale)}</li>)}</ul>}</section></main>;
 }
