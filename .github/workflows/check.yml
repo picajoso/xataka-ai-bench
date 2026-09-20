@@ -23,6 +23,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @aibench/evaluation exec playwright install --with-deps chromium
       - run: pnpm check
       - run: pnpm --filter @aibench/web build
