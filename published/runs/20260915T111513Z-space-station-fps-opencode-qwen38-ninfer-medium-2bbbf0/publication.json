@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "20260915T111513Z-space-station-fps-opencode-qwen38-ninfer-medium-2bbbf0",
+  "publishedAt": "2026-09-20T16:20:00.000Z",
+  "official": true,
+  "sourceInputs": {
+    "visibility": "public",
+    "redistributable": true
+  },
+  "summary": {
+    "es": "Resultado oficial fallido: el primer intento y su reparación no generaron js/engine.js, necesario para cargar la aplicación.",
+    "en": "Official failed result: the first attempt and its repair did not generate js/engine.js, which is required to load the application."
+  },
+  "includedPaths": [
+    "source/css/style.css",
+    "source/index.html",
+    "summary.en.md",
+    "summary.es.md"
+  ],
+  "evidencePaths": [],
+  "demo": null,
+  "packageHash": "sha256:ffd65764d54354afddef752b58d04b2bc8e955e2dffdee7892eb42f7898ced18"
+}

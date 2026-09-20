@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESTACIÓN K-7 // SECTOR MORTO</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="objective-box">
+      <div id="objective-label">OBJETIVO</div>
+      <div id="objective-text">—</div>
+    </div>
+    <div id="top-right">
+      <div id="score-box">
+        <span id="score-label">PUNTOS</span>
+        <span id="score-value">0</span>
+      </div>
+      <div id="ammo-box">
+        <span id="ammo-label">MUNICIÓN</span>
+        <span id="ammo-value">∞</span>
+      </div>
+    </div>
+    <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+    <div id="hitmarker" class="hidden"></div>
+    <div id="damage-vignette"></div>
+    <div id="health-box">
+      <div id="health-bar-bg"><div id="health-bar-fill"></div></div>
+      <div id="health-text">100</div>
+    </div>
+    <div id="message-toast"></div>
+  </div>
+
+  <!-- Menú principal -->
+  <div id="menu-screen" class="screen">
+    <div class="panel">
+      <h1>ESTACIÓN <span>K-7</span></h1>
+      <p class="sub">SECTOR MORTO · EXPEDIENTE DE CUARANTENA</p>
+      <p class="lore">La estación de investigación K-7 fue evacuada tras un incidente biológico.
+      Los equipos de recuperación no regresaron. Tu misión: recuperar los datos del núcleo y escapar.</p>
+      <ul class="controls">
+        <li><b>W A S D</b> — moverse</li>
+        <li><b>Ratón</b> — apuntar (clic para capturar el cursor)</li>
+        <li><b>Clic izquierdo</b> — disparar</li>
+        <li><b>Shift</b> — esprintar</li>
+        <li><b>Espacio</b> — saltar</li>
+      </ul>
+      <button id="btn-start" class="btn primary">INICIAR MISIÓN</button>
+      <p class="hint">Requiere WebGL. Juega con sonido mentalmente: la estación está en silencio.</p>
+    </div>
+  </div>
+
+  <!-- Pantalla de victoria -->
+  <div id="win-screen" class="screen hidden">
+    <div class="panel">
+      <h1>MISIÓN CUMPLIDA</h1>
+      <p class="sub">Los datos del núcleo han sido extraídos.</p>
+      <div class="stats">
+        <div><span>Puntuación final</span><b id="win-score">0</b></div>
+        <div><span>Enemigos eliminados</span><b id="win-kills">0</b></div>
+        <div><span>Salud restante</span><b id="win-health">0</b></div>
+      </div>
+      <button id="btn-restart-win" class="btn primary">REINTENTAR</button>
+    </div>
+  </div>
+
+  <!-- Pantalla de derrota -->
+  <div id="lose-screen" class="screen hidden">
+    <div class="panel">
+      <h1 class="dead">SIGNAL LOST</h1>
+      <p class="sub">Tu señal vital ha dejado de transmitirse.</p>
+      <div class="stats">
+        <div><span>Puntuación</span><b id="lose-score">0</b></div>
+        <div><span>Enemigos eliminados</span><b id="lose-kills">0</b></div>
+        <div><span>Zona alcanzada</span><b id="lose-zone">—</b></div>
+      </div>
+      <button id="btn-restart-lose" class="btn primary">REINTENTAR</button>
+    </div>
+  </div>
+</div>
+<script src="js/engine.js"></script>
+</body>
+</html>
