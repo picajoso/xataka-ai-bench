@@ -1,8 +1,16 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parsePublicationManifest, type PublicationManifest } from "@aibench/contracts";
+import {
+  parsePublicCatalogIndex,
+  parsePublicationManifest,
+  type PublicCatalogIndex,
+  type PublicRunContext,
+  type PublicationManifest,
+} from "@aibench/contracts";
 
-export type PublicCatalog = { runs: PublicationManifest[] };
+const emptyIndex: PublicCatalogIndex = { schemaVersion: "1.0.0", runs: [] };
+
+export type PublicCatalog = { runs: PublicationManifest[]; index: PublicCatalogIndex };
 export type Locale = "es" | "en";
 
 const messages = {
@@ -50,16 +58,30 @@ export async function loadPublicCatalog(publishedRoot: string): Promise<PublicCa
   try {
     entries = await readdir(runsRoot, { withFileTypes: true, encoding: "utf8" });
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { runs: [] };
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { runs: [], index: await loadPublicCatalogIndex(publishedRoot) };
     throw error;
   }
   const runs = await Promise.all(entries.filter((entry) => entry.isDirectory()).map(async (entry) => {
     const contents = await readFile(join(runsRoot, entry.name, "publication.json"), "utf8");
     return parsePublicationManifest(JSON.parse(contents) as unknown);
   }));
-  return { runs: runs.sort((left, right) => left.runId.localeCompare(right.runId)) };
+  return { runs: runs.sort((left, right) => left.runId.localeCompare(right.runId)), index: await loadPublicCatalogIndex(publishedRoot) };
+}
+
+async function loadPublicCatalogIndex(publishedRoot: string): Promise<PublicCatalogIndex> {
+  try {
+    return parsePublicCatalogIndex(JSON.parse(await readFile(join(publishedRoot, "catalog.json"), "utf8")) as unknown);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyIndex;
+    throw error;
+  }
 }
 
 export async function getPublicRun(publishedRoot: string, runId: string): Promise<PublicationManifest | null> {
   return (await loadPublicCatalog(publishedRoot)).runs.find((run) => run.runId === runId) ?? null;
+}
+
+export function getPublicRunContext(catalog: PublicCatalog, runId: string): PublicRunContext | null {
+  if (!catalog.runs.some((run) => run.runId === runId)) return null;
+  return catalog.index.runs.find((context) => context.runId === runId) ?? null;
 }

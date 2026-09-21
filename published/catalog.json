@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "runs": [
+    {
+      "runId": "20260915T111513Z-space-station-fps-opencode-qwen38-ninfer-medium-2bbbf0",
+      "benchmark": {
+        "slug": "space-station-fps",
+        "title": {
+          "es": "Estación espacial en primera persona",
+          "en": "First-person space station"
+        }
+      },
+      "system": {
+        "slug": "opencode-qwen38-ninfer-medium",
+        "displayName": "OpenCode + Qwen3.8-27B (nInfer, razonamiento medio)"
+      },
+      "status": "validation-failure",
+      "canonicalPrompt": {
+        "locale": "es",
+        "text": "Crea desde cero un videojuego 3D en primera persona ambientado en una estación espacial abandonada.\n\nDebe poder jugarse en un navegador moderno.\n\nRequisitos:\n\n- movimiento mediante WASD;\n- control de cámara con ratón;\n- al menos tres zonas o salas claramente diferentes;\n- enemigos capaces de detectar y perseguir al jugador;\n- sistema de salud;\n- algún mecanismo de combate;\n- puntuación;\n- condición clara de victoria;\n- condición clara de derrota;\n- colisiones con paredes y elementos principales;\n- iluminación y ambientación visual;\n- interfaz que muestre salud, puntuación y objetivo actual.\n\nNo utilices imágenes, modelos 3D, texturas, sonidos ni otros assets descargados de Internet.\n\nTodo el contenido visual necesario debe generarse mediante código.\n\nPuedes elegir libremente las tecnologías y estructura del proyecto, pero no instales dependencias ni accedas a la red para obtener código, bibliotecas ni assets. Todo debe funcionar sin conexión, usando únicamente lo disponible en el entorno y el contenido que generes localmente.\n\nGuarda el proyecto final en la raíz del workspace. `index.html` debe ser su punto de entrada y cualquier archivo local que referencie (JavaScript o CSS) debe entregarse junto a él.\n\nEl resultado debe ser realmente jugable, no simplemente una demostración visual.\n\nAntes de finalizar:\n\n1. ejecuta la aplicación;\n2. comprueba que no existen errores evidentes de ejecución;\n3. comprueba los controles principales;\n4. corrige cualquier problema que detectes.\n\nNo me pidas aclaraciones. Toma tú mismo las decisiones necesarias.\n\nCuando consideres que el proyecto está terminado, detente."
+      }
+    }
+  ]
+}
