@@ -26,3 +26,4 @@ jobs:
       - run: pnpm --filter @aibench/evaluation exec playwright install --with-deps chromium
       - run: pnpm check
       - run: pnpm --filter @aibench/web build
+      - run: scripts/verify-public-export.sh
