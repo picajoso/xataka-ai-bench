@@ -1,8 +1,9 @@
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
 import {
   parsePublicCatalogIndex,
   parsePublicationManifest,
+  RelativePathSchema,
   type PublicCatalogIndex,
   type PublicRunContext,
   type PublicationManifest,
@@ -11,6 +12,7 @@ import {
 const emptyIndex: PublicCatalogIndex = { schemaVersion: "1.0.0", runs: [] };
 
 export type PublicCatalog = { runs: PublicationManifest[]; index: PublicCatalogIndex };
+export type PublicFile = { path: string; kind: "source" | "evidence" };
 export type Locale = "es" | "en";
 
 const messages = {
@@ -84,4 +86,33 @@ export async function getPublicRun(publishedRoot: string, runId: string): Promis
 export function getPublicRunContext(catalog: PublicCatalog, runId: string): PublicRunContext | null {
   if (!catalog.runs.some((run) => run.runId === runId)) return null;
   return catalog.index.runs.find((context) => context.runId === runId) ?? null;
+}
+
+export function listPublicFiles(run: PublicationManifest): PublicFile[] {
+  return [
+    ...run.includedPaths.map((path) => ({ path, kind: "source" as const })),
+    ...run.evidencePaths.map((path) => ({ path, kind: "evidence" as const })),
+  ].sort((left, right) => left.path.localeCompare(right.path));
+}
+
+export async function readPublicTextFile(publishedRoot: string, runId: string, relativePath: string): Promise<string | null> {
+  if (!RelativePathSchema.safeParse(relativePath).success) return null;
+
+  const run = await getPublicRun(publishedRoot, runId);
+  if (!run || !listPublicFiles(run).some((file) => file.path === relativePath)) return null;
+
+  try {
+    const runRoot = join(publishedRoot, "runs", run.runId);
+    const candidate = join(runRoot, relativePath);
+    const [realRunRoot, realCandidate] = await Promise.all([realpath(runRoot), realpath(candidate)]);
+    const location = relative(realRunRoot, realCandidate);
+    if (location === "" || location === ".." || location.startsWith(`..${sep}`) || location.startsWith("../")) return null;
+
+    const metadata = await stat(realCandidate);
+    if (!metadata.isFile() || metadata.size > 256 * 1024) return null;
+
+    return new TextDecoder("utf-8", { fatal: true }).decode(await readFile(realCandidate));
+  } catch {
+    return null;
+  }
 }

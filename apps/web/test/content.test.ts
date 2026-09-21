@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { getLocalizedSummary, getMessages, getPublicRun, getPublicRunContext, loadPublicCatalog } from "../src/lib/content.js";
+import { getLocalizedSummary, getMessages, getPublicRun, getPublicRunContext, loadPublicCatalog, readPublicTextFile } from "../src/lib/content.js";
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
@@ -64,5 +64,27 @@ describe("public portal content", () => {
 
     writeFileSync(join(root, "catalog.json"), "{");
     await expect(loadPublicCatalog(root)).rejects.toThrow();
+  });
+
+  test("reads only declared UTF-8 files contained by the published run", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-web-"));
+    roots.push(root);
+    const runId = "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3";
+    const run = join(root, "runs", runId);
+    mkdirSync(join(run, "source"), { recursive: true });
+    writeFileSync(join(run, "source", "index.html"), "<!doctype html><title>Inside</title>");
+    writeFileSync(join(root, "private.txt"), "outside");
+    symlinkSync(join(root, "private.txt"), join(run, "source", "escape.txt"));
+    writeFileSync(join(run, "publication.json"), JSON.stringify({
+      schemaVersion: "1.0.0", runId, publishedAt: "2026-09-13T18:00:00.000Z", official: true,
+      sourceInputs: { visibility: "public", redistributable: true }, summary: { es: "Demo", en: "Demo EN" },
+      includedPaths: ["source/index.html", "source/escape.txt"], evidencePaths: [], demo: null,
+      packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+
+    await expect(readPublicTextFile(root, runId, "source/index.html")).resolves.toContain("<!doctype");
+    await expect(readPublicTextFile(root, runId, "../private.txt")).resolves.toBeNull();
+    await expect(readPublicTextFile(root, runId, "raw.log")).resolves.toBeNull();
+    await expect(readPublicTextFile(root, runId, "source/escape.txt")).resolves.toBeNull();
   });
 });
