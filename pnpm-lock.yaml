@@ -53,6 +53,9 @@ importers:
 
   apps/console:
     dependencies:
+      '@aibench/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@aibench/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
