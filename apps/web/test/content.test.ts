@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { getLocalizedSummary, getMessages, getPublicRun, getPublicRunContext, listRunsForBenchmark, listRunsForSystem, loadPublicCatalog, readPublicTextFile } from "../src/lib/content.js";
-import { GET } from "../src/app/runs/[run]/files/[...path]/route.js";
+import { getLocalizedSummary, getMessages, getPublicFileId, getPublicRun, getPublicRunContext, listRunsForBenchmark, listRunsForSystem, loadPublicCatalog, readPublicTextFile } from "../src/lib/content.js";
+import { GET } from "../src/app/runs/[run]/files/[file]/route.js";
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
@@ -126,8 +126,8 @@ describe("public portal content", () => {
     }));
     process.env.AIBENCH_PUBLISHED_ROOT = root;
 
-    const allowed = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, path: ["source", "index.html"] }) });
-    const denied = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, path: ["raw.log"] }) });
+    const allowed = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, file: getPublicFileId("source/index.html") }) });
+    const denied = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, file: getPublicFileId("raw.log") }) });
     expect(allowed.status).toBe(200);
     expect(allowed.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(denied.status).toBe(404);

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation.js";
 import { RunDemo } from "../../../../components/RunDemo.js";
 import { RunFacts } from "../../../../components/RunFacts.js";
 import { RunFiles } from "../../../../components/RunFiles.js";
-import { getLocalizedSummary, getPublicRunContext, loadPublicCatalog, type Locale } from "../../../../lib/content.js";
+import { getLocalizedSummary, getPublicFileId, getPublicRunContext, loadPublicCatalog, type Locale } from "../../../../lib/content.js";
 
 const statuses = {
   es: {
@@ -31,7 +31,7 @@ export default async function RunPage({ params }: Readonly<{ params: Promise<{ l
   const context = getPublicRunContext(catalog, runId);
   const labels = statuses[locale];
   const statusLabel = context ? labels[context.status] : labels.unindexed;
-  const demoUrl = run.demo?.kind === "static" ? `/runs/${run.runId}/files/${run.demo.path}` : undefined;
+  const demoUrl = run.demo?.kind === "static" ? `/runs/${run.runId}/files/${getPublicFileId(run.demo.path)}` : undefined;
 
   return <main>
     <p className="eyebrow">Xataka AI Bench</p>

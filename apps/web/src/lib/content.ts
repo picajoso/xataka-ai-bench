@@ -105,6 +105,14 @@ export function listPublicFiles(run: PublicationManifest): PublicFile[] {
   ].sort((left, right) => left.path.localeCompare(right.path));
 }
 
+export function getPublicFileId(relativePath: string): string {
+  return Buffer.from(relativePath, "utf8").toString("base64url");
+}
+
+export function getPublicFilePath(run: PublicationManifest, fileId: string): string | null {
+  return listPublicFiles(run).find((file) => getPublicFileId(file.path) === fileId)?.path ?? null;
+}
+
 export async function readPublicTextFile(publishedRoot: string, runId: string, relativePath: string): Promise<string | null> {
   if (!RelativePathSchema.safeParse(relativePath).success) return null;
 
