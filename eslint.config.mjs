@@ -5,6 +5,6 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ["node_modules/**", "coverage/**", "dist/**", "**/.next/**", "**/out/**"],
+    ignores: ["node_modules/**", "coverage/**", "dist/**", "**/.next/**", "**/out/**", ".vercel/**"],
   },
 );

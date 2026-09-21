@@ -27,3 +27,5 @@ raw-logs/
 .pnpm-store/
 apps/web/.next/
 apps/web/out/
+.vercel
+.env*
