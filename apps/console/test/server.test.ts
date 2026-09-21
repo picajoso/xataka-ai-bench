@@ -45,6 +45,16 @@ describe("local console server", () => {
     expect((await request(server, "/api/runs/..%2Fstate")).status).toBe(400);
   });
 
+  test("renders only fixed preview routes for operator actions", async () => {
+    const actions = createOperatorActions({ benchmarks: ["safe-benchmark"], systems: ["safe-system"], run: async () => null, cli: async () => ({ exitCode: 0, output: "{}\n" }) });
+    const server = await startConsole({ port: 0, dataSource, actions });
+    servers.push(server);
+    const page = await request(server, "/");
+    expect(page.body).toContain('data-action="plan"');
+    expect(page.body).toContain('data-action="run"');
+    expect(page.body).not.toContain("NINFER_API_KEY=");
+  });
+
   test("does not create a plan before confirmation and uses a fixed command after it", async () => {
     const cliCalls: string[][] = [];
     const actions = createOperatorActions({
