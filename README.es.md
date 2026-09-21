@@ -12,6 +12,19 @@ El portal estático se publica desde `published/` y no lee `state/`, perfiles pr
 
 Una ejecución fallida publicada también es un resultado válido: explica la condición comprobable del fallo y solo enlaza materiales aprobados. Las demos estáticas se muestran en un `iframe` aislado; si no hay demo aprobada, no se inventa una.
 
+## Consola local del operador
+
+La consola privada no forma parte de Vercel ni del portal público. Para abrirla desde el repositorio del SSD externo:
+
+```sh
+export AIBENCH_HOME=/Volumes/MacOS_VMs/xataka-ai-bench
+pnpm --filter @aibench/console dev
+```
+
+Abre `http://127.0.0.1:3847`. El servidor está ligado exclusivamente a esa dirección: no acepta una dirección LAN elegida por el navegador y no muestra perfiles privados, endpoints, credenciales, logs brutos ni workspaces.
+
+Las acciones de plan, ejecución y reparación son en dos pasos: primero muestran una vista previa y después exigen una confirmación humana con un token de un solo uso. Un clic sigue siendo autorización humana para iniciar un modelo. La revisión solo prepara sus datos; la consola nunca aprueba, publica ni promociona un resultado.
+
 ## Verificación local
 
 ```sh

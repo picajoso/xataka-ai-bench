@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsx src/bin.ts",
     "test": "vitest run --root ../.. apps/console",
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
   },

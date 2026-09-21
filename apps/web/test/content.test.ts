@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -9,6 +9,17 @@ const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
 
 describe("public portal content", () => {
+  test("does not reference operator-console routes or private state", () => {
+    const files = readdirSync("apps/web/src", { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"))
+      .join("\n");
+    expect(files).not.toContain("/api/runs");
+    expect(files).not.toContain("/actions/");
+    expect(files).not.toContain("/state/");
+    expect(files).not.toContain("apps/console");
+  });
+
   test("loads an empty catalog without consulting private state", async () => {
     const root = mkdtempSync(join(tmpdir(), "aibench-web-"));
     roots.push(root);

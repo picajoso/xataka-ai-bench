@@ -12,6 +12,19 @@ The static portal is published only from `published/`. It never reads `state/`, 
 
 A published failed run is also a valid result: it explains the verifiable failure condition and links only approved materials. Static demos render in a sandboxed `iframe`; where no approved demo exists, none is fabricated.
 
+## Local operator console
+
+The private console is not part of Vercel or the public portal. From the repository on the external SSD:
+
+```sh
+export AIBENCH_HOME=/Volumes/MacOS_VMs/xataka-ai-bench
+pnpm --filter @aibench/console dev
+```
+
+Open `http://127.0.0.1:3847`. The server binds exclusively to that address: it does not accept a browser-selected LAN address and it never displays private profiles, endpoints, credentials, raw logs, or workspaces.
+
+Plan, run, and repair actions have two steps: first a preview, then a human confirmation with a one-time token. A click remains human authorization to start a model. Review only prepares its facts; the console never approves, publishes, or promotes a result.
+
 ## Local verification
 
 ```sh

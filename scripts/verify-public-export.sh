@@ -31,5 +31,8 @@ grep -Fq "/runs/$run_id/files/$source_index_id" "$output_root/en/runs/$run_id.ht
 if grep -R -E '192\.168\.|Bearer[[:space:]]+[A-Za-z0-9_-]{10,}|api[_-]?key[[:space:]]*[:=]' "$output_root" >/dev/null 2>&1; then
   fail "static output contains a private endpoint or credential-shaped value"
 fi
+if grep -R -F -e '/api/runs' -e '/actions/' -e '/state/' -e 'apps/console' "$output_root" >/dev/null 2>&1; then
+  fail "static output contains an operator-console or private-state reference"
+fi
 
 printf 'public_export_status=ok\n'
