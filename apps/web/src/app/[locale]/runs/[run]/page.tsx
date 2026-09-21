@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound } from "next/navigation.js";
 import { RunDemo } from "../../../../components/RunDemo.js";
 import { RunFacts } from "../../../../components/RunFacts.js";
 import { RunFiles } from "../../../../components/RunFiles.js";
@@ -40,7 +40,7 @@ export default async function RunPage({ params }: Readonly<{ params: Promise<{ l
     <RunFacts run={run} context={context} locale={locale} statusLabel={statusLabel} />
     <section><h2>{labels.summary}</h2><p>{getLocalizedSummary(run, locale)}</p></section>
     {context ? <section><h2>{labels.prompt}</h2><pre>{context.canonicalPrompt.text}</pre></section> : null}
-    <RunDemo demo={run.demo} demoUrl={demoUrl} locale={locale} />
+    <RunDemo demo={run.demo} locale={locale} {...(demoUrl ? { demoUrl } : {})} />
     <RunFiles run={run} locale={locale} />
   </main>;
 }

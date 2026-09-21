@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { getLocalizedSummary, getMessages, getPublicRun, getPublicRunContext, loadPublicCatalog, readPublicTextFile } from "../src/lib/content.js";
+import { getLocalizedSummary, getMessages, getPublicRun, getPublicRunContext, listRunsForBenchmark, listRunsForSystem, loadPublicCatalog, readPublicTextFile } from "../src/lib/content.js";
+import { GET } from "../src/app/runs/[run]/files/[...path]/route.js";
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
@@ -86,5 +87,49 @@ describe("public portal content", () => {
     await expect(readPublicTextFile(root, runId, "../private.txt")).resolves.toBeNull();
     await expect(readPublicTextFile(root, runId, "raw.log")).resolves.toBeNull();
     await expect(readPublicTextFile(root, runId, "source/escape.txt")).resolves.toBeNull();
+  });
+
+  test("groups only indexed runs by benchmark and system", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-web-"));
+    roots.push(root);
+    const runId = "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3";
+    const run = join(root, "runs", runId);
+    mkdirSync(run, { recursive: true });
+    writeFileSync(join(run, "publication.json"), JSON.stringify({
+      schemaVersion: "1.0.0", runId, publishedAt: "2026-09-13T18:00:00.000Z", official: true,
+      sourceInputs: { visibility: "public", redistributable: true }, summary: { es: "Demo", en: "Demo EN" }, includedPaths: [], evidencePaths: [], demo: null,
+      packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+    writeFileSync(join(root, "catalog.json"), JSON.stringify({ schemaVersion: "1.0.0", runs: [{
+      runId, benchmark: { slug: "space-station-fps", title: { es: "Estación", en: "Station" } },
+      system: { slug: "opencode-qwen38-ninfer-medium", displayName: "OpenCode + Qwen" }, status: "validation-failure",
+      canonicalPrompt: { locale: "es", text: "Prompt" },
+    }] }));
+    const catalog = await loadPublicCatalog(root);
+
+    expect(listRunsForBenchmark(catalog, "space-station-fps")).toHaveLength(1);
+    expect(listRunsForSystem(catalog, "opencode-qwen38-ninfer-medium")).toHaveLength(1);
+    expect(listRunsForBenchmark(catalog, "unknown")).toEqual([]);
+  });
+
+  test("serves only an allow-listed public text file", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aibench-web-"));
+    roots.push(root);
+    const runId = "20260913T180000Z-space-station-fps-opencode-qwen38-ninfer-medium-a1b2c3";
+    const run = join(root, "runs", runId, "source");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(join(run, "index.html"), "<!doctype html><title>Inside</title>");
+    writeFileSync(join(root, "runs", runId, "publication.json"), JSON.stringify({
+      schemaVersion: "1.0.0", runId, publishedAt: "2026-09-13T18:00:00.000Z", official: true,
+      sourceInputs: { visibility: "public", redistributable: true }, summary: { es: "Demo", en: "Demo EN" }, includedPaths: ["source/index.html"], evidencePaths: [], demo: null,
+      packageHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+    process.env.AIBENCH_PUBLISHED_ROOT = root;
+
+    const allowed = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, path: ["source", "index.html"] }) });
+    const denied = await GET(new Request("https://example.test"), { params: Promise.resolve({ run: runId, path: ["raw.log"] }) });
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(denied.status).toBe(404);
   });
 });

@@ -88,6 +88,16 @@ export function getPublicRunContext(catalog: PublicCatalog, runId: string): Publ
   return catalog.index.runs.find((context) => context.runId === runId) ?? null;
 }
 
+export function listRunsForBenchmark(catalog: PublicCatalog, slug: string): PublicationManifest[] {
+  const indexedRunIds = new Set(catalog.index.runs.filter((context) => context.benchmark.slug === slug).map((context) => context.runId));
+  return catalog.runs.filter((run) => indexedRunIds.has(run.runId));
+}
+
+export function listRunsForSystem(catalog: PublicCatalog, slug: string): PublicationManifest[] {
+  const indexedRunIds = new Set(catalog.index.runs.filter((context) => context.system.slug === slug).map((context) => context.runId));
+  return catalog.runs.filter((run) => indexedRunIds.has(run.runId));
+}
+
 export function listPublicFiles(run: PublicationManifest): PublicFile[] {
   return [
     ...run.includedPaths.map((path) => ({ path, kind: "source" as const })),
