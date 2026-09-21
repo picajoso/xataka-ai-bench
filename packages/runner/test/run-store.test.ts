@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -66,6 +66,15 @@ describe("RunStore", () => {
     expect(resumed).toEqual(created.manifest);
     expect(resumed.status).toBe("PENDING");
     expect(readFileSync(join(created.directory, "manifest.json"), "utf8")).toContain(created.runId);
+  });
+
+  test("lists valid run manifests newest first and ignores unrelated directories", async () => {
+    const runsRoot = root();
+    const store = new RunStore({ runsRoot, clock: () => new Date("2026-09-11T15:00:00Z"), randomBytes: deterministicRandom() });
+    const created = await store.createRun(plan);
+    mkdirSync(join(runsRoot, "not-a-run"));
+    writeFileSync(join(runsRoot, "not-a-run", "manifest.json"), "{}");
+    await expect(store.listRuns()).resolves.toMatchObject([{ runId: created.runId }]);
   });
 
   test("appends ordered events without rewriting previous lines", async () => {

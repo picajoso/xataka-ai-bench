@@ -1,9 +1,11 @@
 import { randomBytes as secureRandomBytes } from "node:crypto";
-import { mkdir, open, readFile, rename } from "node:fs/promises";
+import type { Dirent } from "node:fs";
+import { mkdir, open, readFile, readdir, rename } from "node:fs/promises";
 import { join } from "node:path";
 import {
   parseRunManifest,
   RunEventSchema,
+  RunIdSchema,
   type RunEvent,
   type RunManifest,
 } from "@aibench/contracts";
@@ -76,6 +78,24 @@ export class RunStore {
   async loadRun(runId: string): Promise<RunManifest> {
     const contents = await readFile(this.#manifestPath(runId), "utf8");
     return parseRunManifest(JSON.parse(contents));
+  }
+
+  async listRuns(): Promise<RunManifest[]> {
+    let entries: Dirent[];
+    try {
+      entries = await readdir(this.#runsRoot, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw error;
+    }
+
+    const manifests = await Promise.all(entries.flatMap((entry) => {
+      if (!entry.isDirectory() || !RunIdSchema.safeParse(entry.name).success) return [];
+      return [this.loadRun(entry.name).catch(() => null)];
+    }));
+    return manifests
+      .filter((manifest): manifest is RunManifest => manifest !== null)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
 
   async appendEvent(runId: string, event: EventInput): Promise<void> {

@@ -1,0 +1,13 @@
+{
+  "name": "@aibench/console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --root ../.. apps/console",
+    "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
+  },
+  "dependencies": {
+    "@aibench/contracts": "workspace:*",
+    "@aibench/runner": "workspace:*"
+  }
+}
