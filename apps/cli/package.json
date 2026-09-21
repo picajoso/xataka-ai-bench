@@ -2,6 +2,7 @@
   "name": "@aibench/cli",
   "private": true,
   "type": "module",
+  "exports": "./src/index.ts",
   "bin": {
     "aibench": "./src/bin.ts"
   },

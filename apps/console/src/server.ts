@@ -3,10 +3,12 @@ import { createServer, type Server } from "node:http";
 import { readdir } from "node:fs/promises";
 import { once } from "node:events";
 import { join } from "node:path";
-import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths } from "@aibench/config";
+import { loadBenchmark, loadExecutionProfiles, loadSystemProfile, resolveBenchPaths, type BenchPaths } from "@aibench/config";
+import { runCli } from "@aibench/cli";
 import { RunStore } from "@aibench/runner";
 import { toConsoleRun } from "./model.js";
 import { routeRequest, type ConsoleDataSource, type ConsoleOverview } from "./routes.js";
+import { createOperatorActions, type OperatorActions } from "./actions.js";
 
 export type { ConsoleDataSource } from "./routes.js";
 
@@ -25,8 +27,7 @@ async function catalogSlugs(directory: string, file: string, load: (path: string
   }
 }
 
-async function createBenchDataSource(): Promise<ConsoleDataSource> {
-  const paths = resolveBenchPaths();
+async function createBenchDataSource(paths: BenchPaths): Promise<ConsoleDataSource> {
   const store = new RunStore({ runsRoot: paths.runsRoot });
   const overview = async (): Promise<ConsoleOverview> => {
     const profiles = await loadExecutionProfiles(join(paths.dataRoot, "execution-profiles.yaml")).catch(() => []);
@@ -45,17 +46,35 @@ async function createBenchDataSource(): Promise<ConsoleDataSource> {
   };
 }
 
-export function createConsoleServer(dataSource: ConsoleDataSource): Server {
+function createBenchActions(paths: BenchPaths, overview: ConsoleOverview): OperatorActions {
+  const store = new RunStore({ runsRoot: paths.runsRoot });
+  return createOperatorActions({
+    benchmarks: overview.benchmarks,
+    systems: overview.systems,
+    run: async (runId) => store.loadRun(runId).then((run) => ({ attemptKind: run.attempt.kind, status: run.status, failureClassification: run.failure?.classification ?? null })).catch(() => null),
+    cli: runCli,
+  });
+}
+
+export function createConsoleServer(dataSource: ConsoleDataSource, actions?: OperatorActions): Server {
   return createServer((request, response) => {
-    void routeRequest(request, response, dataSource).catch(() => {
+    void routeRequest(request, response, dataSource, actions).catch(() => {
       response.writeHead(500, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
       response.end('{"error":"Console read failed"}\n');
     });
   });
 }
 
-export async function startConsole({ port = 3847, dataSource }: { port?: number; dataSource?: ConsoleDataSource } = {}): Promise<Server> {
-  const server = createConsoleServer(dataSource ?? await createBenchDataSource());
+export async function startConsole({ port = 3847, dataSource, actions }: { port?: number; dataSource?: ConsoleDataSource; actions?: OperatorActions } = {}): Promise<Server> {
+  if (dataSource) {
+    const server = createConsoleServer(dataSource, actions);
+    server.listen(port, "127.0.0.1");
+    await once(server, "listening");
+    return server;
+  }
+  const paths = resolveBenchPaths();
+  const source = await createBenchDataSource(paths);
+  const server = createConsoleServer(source, actions ?? createBenchActions(paths, await source.overview()));
   server.listen(port, "127.0.0.1");
   await once(server, "listening");
   return server;
