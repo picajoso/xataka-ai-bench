@@ -79,13 +79,14 @@ describe("local console server", () => {
     const cliCalls: string[][] = [];
     const actions = createOperatorActions({
       benchmarks: [], systems: [], run: async () => null,
-      cli: async (args) => { cliCalls.push(args); return { exitCode: 0, output: "{}\n" }; },
+      cli: async (args) => { cliCalls.push(args); return { exitCode: 0, output: "{\"runId\":\"20260921T120000Z-safe-benchmark-safe-system-a1b2c3\"}\n" }; },
     });
     const server = await startConsole({ port: 0, dataSource, actions });
     servers.push(server);
     const preview = await request(server, "/actions/run/preview", { plan: "plan-20260921-a1b2c3", adapter: "anything-else" });
-    await request(server, "/actions/run/confirm", { token: (JSON.parse(preview.body) as { token: string }).token });
+    const confirmed = await request(server, "/actions/run/confirm", { token: (JSON.parse(preview.body) as { token: string }).token });
     expect(cliCalls).toEqual([["run", "--plan", "plan-20260921-a1b2c3", "--adapter", "opencode", "--confirm", "--json"]]);
+    expect(JSON.parse(confirmed.body)).toMatchObject({ status: "completed", runId: "20260921T120000Z-safe-benchmark-safe-system-a1b2c3" });
   });
 
   test("review preparation never passes approval or publication arguments", async () => {

@@ -41,14 +41,18 @@ function planId(value: string): string {
   return value;
 }
 
-function safeResult(result: CliResult, kind?: ActionKind): { exitCode: number; status: "completed" | "failed"; planId?: string } {
+function safeResult(result: CliResult, kind?: ActionKind): { exitCode: number; status: "completed" | "failed"; planId?: string; runId?: string } {
   const response = { exitCode: result.exitCode, status: result.exitCode === 0 ? "completed" as const : "failed" as const };
-  if (kind !== "plan" || result.exitCode !== 0) return response;
+  if (result.exitCode !== 0 || (kind !== "plan" && kind !== "run" && kind !== "repair")) return response;
   try {
-    const plan = JSON.parse(result.output) as { planId?: unknown };
-    return typeof plan.planId === "string" && /^plan-20\d{6}-[a-f0-9]{6}$/.test(plan.planId)
-      ? { ...response, planId: plan.planId }
-      : response;
+    const payload = JSON.parse(result.output) as { planId?: unknown; runId?: unknown };
+    if (kind === "plan" && typeof payload.planId === "string" && /^plan-20\d{6}-[a-f0-9]{6}$/.test(payload.planId)) {
+      return { ...response, planId: payload.planId };
+    }
+    if ((kind === "run" || kind === "repair") && typeof payload.runId === "string" && RunIdSchema.safeParse(payload.runId).success) {
+      return { ...response, runId: payload.runId };
+    }
+    return response;
   } catch {
     return response;
   }
