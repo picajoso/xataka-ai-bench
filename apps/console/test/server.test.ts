@@ -67,8 +67,9 @@ describe("local console server", () => {
     const preview = await request(server, "/actions/plan/preview", { benchmark: "safe-benchmark", system: "safe-system" });
     expect(cliCalls).toEqual([]);
     const token = (JSON.parse(preview.body) as { token: string }).token;
-    await request(server, "/actions/plan/confirm", { token });
+    const confirmed = await request(server, "/actions/plan/confirm", { token });
     expect(cliCalls).toEqual([["plan", "--benchmark", "safe-benchmark", "--system", "safe-system", "--confirm", "--json"]]);
+    expect(JSON.parse(confirmed.body)).toMatchObject({ status: "completed", planId: "plan-20260921-a1b2c3" });
     expect((await request(server, "/actions/plan/confirm", { token })).status).toBe(400);
     expect(cliCalls).toHaveLength(1);
   });

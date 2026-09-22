@@ -41,8 +41,17 @@ function planId(value: string): string {
   return value;
 }
 
-function safeResult(result: CliResult): { exitCode: number; status: "completed" | "failed" } {
-  return { exitCode: result.exitCode, status: result.exitCode === 0 ? "completed" : "failed" };
+function safeResult(result: CliResult, kind?: ActionKind): { exitCode: number; status: "completed" | "failed"; planId?: string } {
+  const response = { exitCode: result.exitCode, status: result.exitCode === 0 ? "completed" as const : "failed" as const };
+  if (kind !== "plan" || result.exitCode !== 0) return response;
+  try {
+    const plan = JSON.parse(result.output) as { planId?: unknown };
+    return typeof plan.planId === "string" && /^plan-20\d{6}-[a-f0-9]{6}$/.test(plan.planId)
+      ? { ...response, planId: plan.planId }
+      : response;
+  } catch {
+    return response;
+  }
 }
 
 export function createOperatorActions(sources: OperatorActionSources, confirmations = new ConfirmationStore()) {
@@ -72,7 +81,7 @@ export function createOperatorActions(sources: OperatorActionSources, confirmati
     const token = stringField((body as Record<string, unknown>).token, "token");
     const pending = confirmations.consume(token, kind);
     if (pending === null) throw new Error("Confirmation expired or invalid");
-    return safeResult(await sources.cli(pending.args));
+    return safeResult(await sources.cli(pending.args), kind);
   };
   return { previewPlan, previewRun, previewRepair, previewReview, confirm };
 }
