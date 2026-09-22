@@ -52,6 +52,7 @@ describe("local console server", () => {
     const page = await request(server, "/");
     expect(page.body).toContain('data-action="plan"');
     expect(page.body).toContain('data-action="run"');
+    expect(page.body).toContain("confirmation.status!=='completed'");
     expect(page.body).not.toContain("NINFER_API_KEY=");
   });
 
